@@ -9,29 +9,34 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::Env,
-    ftl::FtlConnectionType,
-    routes::{
-        auth::User,
-        dns::{common::reload_gravity, list::List}
+    routes::auth::User,
+    services::{
+        lists::{List, ListService},
+        PiholeModule
     },
     util::{reply_success, Reply}
 };
-use rocket::State;
+use shaku_rocket::InjectProvided;
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
-pub fn delete_whitelist(_auth: User, env: State<Env>, domain: String) -> Reply {
-    List::White.remove(&domain, &env)?;
-    reload_gravity(List::White, &env)?;
+pub fn delete_whitelist(
+    _auth: User,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
+    domain: String
+) -> Reply {
+    list_service.remove(List::White, &domain)?;
     reply_success()
 }
 
 /// Delete a domain from the blacklist
 #[delete("/dns/blacklist/<domain>")]
-pub fn delete_blacklist(_auth: User, env: State<Env>, domain: String) -> Reply {
-    List::Black.remove(&domain, &env)?;
-    reload_gravity(List::Black, &env)?;
+pub fn delete_blacklist(
+    _auth: User,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
+    domain: String
+) -> Reply {
+    list_service.remove(List::Black, &domain)?;
     reply_success()
 }
 
@@ -39,54 +44,65 @@ pub fn delete_blacklist(_auth: User, env: State<Env>, domain: String) -> Reply {
 #[delete("/dns/regexlist/<domain>")]
 pub fn delete_regexlist(
     _auth: User,
-    env: State<Env>,
-    ftl: State<FtlConnectionType>,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
     domain: String
 ) -> Reply {
-    List::Regex.remove(&domain, &env)?;
-    ftl.connect("recompile-regex")?.expect_eom()?;
+    list_service.remove(List::Regex, &domain)?;
     reply_success()
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        env::PiholeFile,
-        testing::{write_eom, TestBuilder}
+        services::lists::{List, ListService, MockListService},
+        testing::TestBuilder
     };
+    use mockall::predicate::*;
     use rocket::http::Method;
+
+    /// Test that a successful delete returns success
+    fn delete_test(list: List, endpoint: &str, domain: &'static str) {
+        TestBuilder::new()
+            .endpoint(endpoint)
+            .method(Method::Delete)
+            .mock_provider::<dyn ListService>(Box::new(move |_| {
+                let mut service = MockListService::new();
+
+                service
+                    .expect_remove()
+                    .with(eq(list), eq(domain))
+                    .return_const(Ok(()));
+
+                Ok(Box::new(service))
+            }))
+            .expect_json(json!({ "status": "success" }))
+            .test();
+    }
 
     #[test]
     fn test_delete_whitelist() {
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/whitelist/example.com")
-            .method(Method::Delete)
-            .file_expect(PiholeFile::Whitelist, "example.com\n", "")
-            .expect_json(json!({ "status": "success" }))
-            .test();
+        delete_test(
+            List::White,
+            "/admin/api/dns/whitelist/example.com",
+            "example.com"
+        );
     }
 
     #[test]
     fn test_delete_blacklist() {
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/blacklist/example.com")
-            .method(Method::Delete)
-            .file_expect(PiholeFile::Blacklist, "example.com\n", "")
-            .expect_json(json!({ "status": "success" }))
-            .test();
+        delete_test(
+            List::Black,
+            "/admin/api/dns/blacklist/example.com",
+            "example.com"
+        );
     }
 
     #[test]
     fn test_delete_regexlist() {
-        let mut data = Vec::new();
-        write_eom(&mut data);
-
-        TestBuilder::new()
-            .endpoint("/admin/api/dns/regexlist/%5E.%2Aexample.com%24")
-            .method(Method::Delete)
-            .ftl("recompile-regex", data)
-            .file_expect(PiholeFile::Regexlist, "^.*example.com$\n", "")
-            .expect_json(json!({ "status": "success" }))
-            .test();
+        delete_test(
+            List::Regex,
+            "/admin/api/dns/regexlist/%5E.%2Aexample.com%24",
+            "^.*example.com$"
+        );
     }
 }

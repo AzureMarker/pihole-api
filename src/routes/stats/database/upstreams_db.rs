@@ -18,15 +18,22 @@ use crate::{
             upstreams::{UpstreamItemReply, UpstreamsReply}
         }
     },
+    services::PiholeModule,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
+use shaku_rocket::InjectProvided;
 use std::collections::HashMap;
 
 /// Get upstream data from the database
 #[get("/stats/database/upstreams?<from>&<until>")]
-pub fn upstreams_db(from: u64, until: u64, _auth: User, db: FtlDatabase) -> Reply {
+pub fn upstreams_db(
+    from: u64,
+    until: u64,
+    _auth: User,
+    db: InjectProvided<PiholeModule, FtlDatabase>
+) -> Reply {
     reply_result(upstreams_db_impl(from, until, &db as &SqliteConnection))
 }
 
@@ -124,7 +131,7 @@ fn get_upstream_counts(
 mod test {
     use super::{get_upstream_counts, upstreams_db_impl};
     use crate::{
-        databases::ftl::connect_to_test_db,
+        databases::ftl::connect_to_ftl_test_db,
         routes::stats::upstreams::{UpstreamItemReply, UpstreamsReply}
     };
     use std::collections::HashMap;
@@ -162,7 +169,7 @@ mod test {
             forwarded_queries: 26
         };
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = upstreams_db_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db).unwrap();
 
         assert_eq!(actual, expected);
@@ -176,7 +183,7 @@ mod test {
         expected.insert(Some("8.8.4.4".to_owned()), 22);
         expected.insert(Some("8.8.8.8".to_owned()), 4);
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_upstream_counts(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db).unwrap();
 
         assert_eq!(actual, expected);

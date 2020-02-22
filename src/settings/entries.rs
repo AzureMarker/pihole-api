@@ -70,7 +70,28 @@ pub trait ConfigEntry {
     /// Read this setting from the config file it appears in.
     /// If the setting is not found, its default value is returned.
     fn read(&self, env: &Env) -> Result<String, Error> {
-        let lines = env.read_file_lines(self.file())?;
+        let lines = match env.read_file_lines(self.file()) {
+            Ok(lines) => lines,
+            Err(e) => {
+                // If the file does not exist, use the default
+
+                // Chaining `if let` is not supported yet, so we have to nest
+                // them. https://github.com/rust-lang/rust/issues/53667
+                if let ErrorKind::FileRead(_) = e.kind() {
+                    if let Some(io::ErrorKind::NotFound) = e
+                        .cause()
+                        .unwrap()
+                        .downcast_ref::<io::Error>()
+                        .map(io::Error::kind)
+                    {
+                        return Ok(self.get_default().to_owned());
+                    }
+                }
+
+                // Return the original error if it was not a "not found" error
+                return Err(e);
+            }
+        };
         let key = self.key();
 
         // Check every line for the key (filter out lines which could not be read)
@@ -169,12 +190,13 @@ pub enum SetupVarsEntry {
     ConditionalForwarding,
     ConditionalForwardingDomain,
     ConditionalForwardingIp,
-    ConditionalForwardingReverse,
+    ConditionalForwardingCIDR,
     DhcpActive,
     DhcpEnd,
     DhcpIpv6,
     DhcpLeasetime,
     DhcpStart,
+    DhcpRapidCommit,
     DhcpRouter,
     DnsmasqListening,
     Dnssec,
@@ -208,14 +230,15 @@ impl ConfigEntry for SetupVarsEntry {
                 Cow::Borrowed("CONDITIONAL_FORWARDING_DOMAIN")
             }
             SetupVarsEntry::ConditionalForwardingIp => Cow::Borrowed("CONDITIONAL_FORWARDING_IP"),
-            SetupVarsEntry::ConditionalForwardingReverse => {
-                Cow::Borrowed("CONDITIONAL_FORWARDING_REVERSE")
+            SetupVarsEntry::ConditionalForwardingCIDR => {
+                Cow::Borrowed("CONDITIONAL_FORWARDING_CIDR")
             }
             SetupVarsEntry::DhcpActive => Cow::Borrowed("DHCP_ACTIVE"),
             SetupVarsEntry::DhcpEnd => Cow::Borrowed("DHCP_END"),
             SetupVarsEntry::DhcpIpv6 => Cow::Borrowed("DHCP_IPv6"),
             SetupVarsEntry::DhcpLeasetime => Cow::Borrowed("DHCP_LEASETIME"),
             SetupVarsEntry::DhcpStart => Cow::Borrowed("DHCP_START"),
+            SetupVarsEntry::DhcpRapidCommit => Cow::Borrowed("DHCP_rapid_commit"),
             SetupVarsEntry::DhcpRouter => Cow::Borrowed("DHCP_ROUTER"),
             SetupVarsEntry::DnsmasqListening => Cow::Borrowed("DNSMASQ_LISTENING"),
             SetupVarsEntry::Dnssec => Cow::Borrowed("DNSSEC"),
@@ -235,7 +258,7 @@ impl ConfigEntry for SetupVarsEntry {
     fn value_type(&self) -> ValueType {
         match self {
             SetupVarsEntry::ApiExcludeClients => {
-                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4, ValueType::Ipv6])
+                ValueType::Array(&[ValueType::Hostname, ValueType::IPv4, ValueType::IPv6])
             }
             SetupVarsEntry::ApiExcludeDomains => ValueType::Array(&[ValueType::Hostname]),
             SetupVarsEntry::ApiQueryLogShow => {
@@ -246,20 +269,27 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::DnsFqdnRequired => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwarding => ValueType::Boolean,
             SetupVarsEntry::ConditionalForwardingDomain => ValueType::Hostname,
-            SetupVarsEntry::ConditionalForwardingIp => ValueType::Ipv4,
-            SetupVarsEntry::ConditionalForwardingReverse => ValueType::ConditionalForwardingReverse,
+            SetupVarsEntry::ConditionalForwardingIp => {
+                ValueType::Any(&[ValueType::IPv4, ValueType::IPv6])
+            }
+            SetupVarsEntry::ConditionalForwardingCIDR => {
+                ValueType::Any(&[ValueType::IPv4CIDR, ValueType::IPv6CIDR])
+            }
             SetupVarsEntry::DhcpActive => ValueType::Boolean,
-            SetupVarsEntry::DhcpEnd => ValueType::Ipv4,
+            SetupVarsEntry::DhcpEnd => ValueType::IPv4,
             SetupVarsEntry::DhcpIpv6 => ValueType::Boolean,
             SetupVarsEntry::DhcpLeasetime => ValueType::Integer,
-            SetupVarsEntry::DhcpStart => ValueType::Ipv4,
-            SetupVarsEntry::DhcpRouter => ValueType::Ipv4,
+            SetupVarsEntry::DhcpStart => ValueType::IPv4,
+            SetupVarsEntry::DhcpRapidCommit => ValueType::Boolean,
+            SetupVarsEntry::DhcpRouter => ValueType::IPv4,
             SetupVarsEntry::DnsmasqListening => ValueType::String(&["all", "local", "single"]),
             SetupVarsEntry::Dnssec => ValueType::Boolean,
             SetupVarsEntry::HostRecord => ValueType::Domain,
-            SetupVarsEntry::Ipv4Address => ValueType::Ipv4Mask,
-            SetupVarsEntry::Ipv6Address => ValueType::Ipv6,
-            SetupVarsEntry::PiholeDns(_) => ValueType::IPv4OptionalPort,
+            SetupVarsEntry::Ipv4Address => ValueType::IPv4Mask,
+            SetupVarsEntry::Ipv6Address => ValueType::IPv6,
+            SetupVarsEntry::PiholeDns(_) => {
+                ValueType::Any(&[ValueType::IPv4OptionalPort, ValueType::IPv6OptionalPort])
+            }
             SetupVarsEntry::PiholeDomain => ValueType::Hostname,
             SetupVarsEntry::PiholeInterface => ValueType::Interface,
             SetupVarsEntry::QueryLogging => ValueType::Boolean,
@@ -280,12 +310,13 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::ConditionalForwarding => "false",
             SetupVarsEntry::ConditionalForwardingDomain => "",
             SetupVarsEntry::ConditionalForwardingIp => "",
-            SetupVarsEntry::ConditionalForwardingReverse => "",
+            SetupVarsEntry::ConditionalForwardingCIDR => "24",
             SetupVarsEntry::DhcpActive => "false",
             SetupVarsEntry::DhcpEnd => "",
             SetupVarsEntry::DhcpIpv6 => "false",
             SetupVarsEntry::DhcpLeasetime => "24",
             SetupVarsEntry::DhcpStart => "",
+            SetupVarsEntry::DhcpRapidCommit => "true",
             SetupVarsEntry::DhcpRouter => "",
             SetupVarsEntry::DnsmasqListening => "local",
             SetupVarsEntry::Dnssec => "false",
@@ -293,7 +324,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::Ipv4Address => "",
             SetupVarsEntry::Ipv6Address => "",
             SetupVarsEntry::PiholeDns(_) => "",
-            SetupVarsEntry::PiholeDomain => "",
+            SetupVarsEntry::PiholeDomain => "lan",
             SetupVarsEntry::PiholeInterface => "",
             SetupVarsEntry::QueryLogging => "false",
             SetupVarsEntry::WebPassword => "",
@@ -345,6 +376,7 @@ pub enum FtlConfEntry {
     DbFile,
     DbInterval,
     FtlPort,
+    GravityDb,
     IgnoreLocalHost,
     MaxDbDays,
     MaxLogAge,
@@ -368,6 +400,7 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::DbFile => "DBFILE",
             FtlConfEntry::DbInterval => "DBINTERVAL",
             FtlConfEntry::FtlPort => "FTLPORT",
+            FtlConfEntry::GravityDb => "GRAVITYDB",
             FtlConfEntry::IgnoreLocalHost => "IGNORE_LOCALHOST",
             FtlConfEntry::MaxDbDays => "MAXDBDAYS",
             FtlConfEntry::MaxLogAge => "MAXLOGAGE",
@@ -389,6 +422,7 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::DbFile => ValueType::Path,
             FtlConfEntry::DbInterval => ValueType::Decimal,
             FtlConfEntry::FtlPort => ValueType::PortNumber,
+            FtlConfEntry::GravityDb => ValueType::Path,
             FtlConfEntry::IgnoreLocalHost => ValueType::YesNo,
             FtlConfEntry::MaxDbDays => ValueType::Integer,
             FtlConfEntry::MaxLogAge => ValueType::Decimal,
@@ -408,6 +442,7 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::DbFile => "/etc/pihole/pihole-FTL.db",
             FtlConfEntry::DbInterval => "1.0",
             FtlConfEntry::FtlPort => "4711",
+            FtlConfEntry::GravityDb => "/etc/pihole/gravity.db",
             FtlConfEntry::IgnoreLocalHost => "no",
             FtlConfEntry::MaxDbDays => "365",
             FtlConfEntry::MaxLogAge => "24.0",
@@ -425,86 +460,101 @@ impl ConfigEntry for FtlConfEntry {
 mod tests {
     use super::{ConfigEntry, SetupVarsEntry};
     use crate::{
-        env::{Config, Env, PiholeFile},
+        env::{Env, PiholeFile},
         testing::TestEnvBuilder
     };
+
+    /// Run a test with a single file.
+    ///
+    /// The file is populated with some initial data, the test is run, and the
+    /// file is checked against the expected data.
+    fn test_with_file(
+        file: PiholeFile,
+        initial_data: &str,
+        expected_data: &str,
+        test_fn: impl FnOnce(Env)
+    ) {
+        // Create the environment
+        let env_builder = TestEnvBuilder::new().file_expect(file, initial_data, expected_data);
+        let mut test_file = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
+
+        // Run the test
+        test_fn(env);
+
+        // Check the file's final contents
+        let mut buffer = String::new();
+        test_file.assert_expected(&mut buffer);
+    }
 
     /// Test to make sure when writing a setting, a similar setting does not
     /// get deleted. Example: Adding PIHOLE_DNS_1 should not delete
     /// PIHOLE_DNS_10
     #[test]
     fn write_similar_keys() {
-        let env_builder = TestEnvBuilder::new().file_expect(
+        test_with_file(
             PiholeFile::SetupVars,
             "PIHOLE_DNS_10=1.1.1.1\n",
             "PIHOLE_DNS_10=1.1.1.1\n\
-             PIHOLE_DNS_1=2.2.2.2\n"
+             PIHOLE_DNS_1=2.2.2.2\n",
+            |env| {
+                SetupVarsEntry::PiholeDns(1).write("2.2.2.2", &env).unwrap();
+            }
         );
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
-
-        SetupVarsEntry::PiholeDns(1).write("2.2.2.2", &env).unwrap();
-
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
     }
 
+    /// When a entry is deleted, it is removed from the file
     #[test]
     fn delete_value() {
-        let env_builder =
-            TestEnvBuilder::new().file_expect(PiholeFile::SetupVars, "PIHOLE_DNS_1=1.2.3.4\n", "");
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
-
-        SetupVarsEntry::PiholeDns(1).write("", &env).unwrap();
-
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
+        test_with_file(PiholeFile::SetupVars, "PIHOLE_DNS_1=1.2.3.4\n", "", |env| {
+            SetupVarsEntry::PiholeDns(1).write("", &env).unwrap();
+        });
     }
 
+    /// When an entry is written to, it cleans out any duplicates
     #[test]
     fn write_over_duplicate_keys() {
-        let env_builder = TestEnvBuilder::new().file_expect(
+        test_with_file(
             PiholeFile::SetupVars,
             "PIHOLE_DNS_1=2.2.2.2\n\
              PIHOLE_DNS_1=1.2.3.4\n",
-            "PIHOLE_DNS_1=5.6.7.8\n"
+            "PIHOLE_DNS_1=5.6.7.8\n",
+            |env| {
+                SetupVarsEntry::PiholeDns(1).write("5.6.7.8", &env).unwrap();
+            }
         );
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
-
-        SetupVarsEntry::PiholeDns(1).write("5.6.7.8", &env).unwrap();
-
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
     }
 
+    /// When an entry is written to, it overwrites existing values, even empty
+    /// ones
     #[test]
     fn write_over_null_value() {
-        let env_builder = TestEnvBuilder::new().file_expect(
+        test_with_file(
             PiholeFile::SetupVars,
             "PIHOLE_DNS_1=\n",
-            "PIHOLE_DNS_1=1.2.3.4\n"
+            "PIHOLE_DNS_1=1.2.3.4\n",
+            |env| {
+                SetupVarsEntry::PiholeDns(1).write("1.2.3.4", &env).unwrap();
+            }
         );
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
-
-        SetupVarsEntry::PiholeDns(1).write("1.2.3.4", &env).unwrap();
-
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
     }
 
+    /// Entries are written to an empty file successfully
     #[test]
     fn write_to_empty_file() {
-        let env_builder =
-            TestEnvBuilder::new().file_expect(PiholeFile::SetupVars, "", "PIHOLE_DNS_1=1.1.1.1\n");
-        let mut test_file = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
+        test_with_file(PiholeFile::SetupVars, "", "PIHOLE_DNS_1=1.1.1.1\n", |env| {
+            SetupVarsEntry::PiholeDns(1).write("1.1.1.1", &env).unwrap();
+        });
+    }
 
-        SetupVarsEntry::PiholeDns(1).write("1.1.1.1", &env).unwrap();
+    /// Reading from a missing file returns the default value
+    #[test]
+    fn read_from_missing_file() {
+        let env = TestEnvBuilder::new().build();
 
-        let mut buffer = String::new();
-        test_file.assert_expected(&mut buffer);
+        let value = SetupVarsEntry::WebLanguage.read(&env).unwrap();
+        let default = SetupVarsEntry::WebLanguage.get_default();
+
+        assert_eq!(value, default);
     }
 }

@@ -19,6 +19,7 @@ use std::{
     os::unix::net::UnixStream
 };
 
+use shaku::{Component, ContainerBuildContext, Module};
 #[cfg(test)]
 use std::collections::HashMap;
 #[cfg(test)]
@@ -42,6 +43,15 @@ pub enum FtlConnectionType {
     Test(HashMap<String, Vec<u8>>)
 }
 
+impl<M: Module> Component<M> for FtlConnectionType {
+    type Interface = Self;
+    type Parameters = ();
+
+    fn build(_: &mut ContainerBuildContext<M>, _: Self::Parameters) -> Box<Self::Interface> {
+        Box::new(FtlConnectionType::Socket)
+    }
+}
+
 impl FtlConnectionType {
     /// Connect to FTL and run the specified command
     pub fn connect(&self, command: &str) -> Result<FtlConnection, Error> {
@@ -49,15 +59,11 @@ impl FtlConnectionType {
         match *self {
             FtlConnectionType::Socket => {
                 // Try to connect to FTL
-                let mut stream = match UnixStream::connect(SOCKET_LOCATION) {
-                    Ok(s) => s,
-                    Err(_) => return Err(Error::from(ErrorKind::FtlConnectionFail))
-                };
+                let mut stream =
+                    UnixStream::connect(SOCKET_LOCATION).context(ErrorKind::FtlConnectionFail)?;
 
                 // Send the command
-                stream
-                    .write_all(format!(">{}\n", command).as_bytes())
-                    .context(ErrorKind::FtlConnectionFail)?;
+                writeln!(stream, ">{}", command).context(ErrorKind::FtlConnectionFail)?;
 
                 // Return the connection so the API can read the response
                 Ok(FtlConnection(Box::new(BufReader::new(stream))))

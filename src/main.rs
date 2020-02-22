@@ -8,8 +8,11 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
+use std::process::exit;
+
 fn main() {
-    if let Err(e) = pihole_api::start() {
+    if let Err(e) = pihole_api::handle_cli() {
         e.print_stacktrace();
+        exit(1);
     }
 }

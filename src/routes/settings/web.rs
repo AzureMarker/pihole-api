@@ -11,15 +11,16 @@
 use crate::{
     env::Env,
     routes::auth::User,
+    services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
     util::{reply_data, reply_success, Error, ErrorKind, Reply}
 };
-use rocket::State;
 use rocket_contrib::json::Json;
+use shaku_rocket::Inject;
 
 /// Get web interface settings
 #[get("/settings/web")]
-pub fn get_web(env: State<Env>) -> Reply {
+pub fn get_web(env: Inject<PiholeModule, Env>) -> Reply {
     let settings = WebSettings {
         layout: SetupVarsEntry::WebLayout.read(&env)?,
         language: SetupVarsEntry::WebLanguage.read(&env)?
@@ -30,7 +31,7 @@ pub fn get_web(env: State<Env>) -> Reply {
 
 /// Update web interface settings
 #[put("/settings/web", data = "<settings>")]
-pub fn put_web(_auth: User, env: State<Env>, settings: Json<WebSettings>) -> Reply {
+pub fn put_web(_auth: User, env: Inject<PiholeModule, Env>, settings: Json<WebSettings>) -> Reply {
     let settings = settings.into_inner();
 
     if !settings.is_valid() {

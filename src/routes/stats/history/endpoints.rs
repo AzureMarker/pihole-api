@@ -13,7 +13,8 @@ use crate::{
     env::Env,
     ftl::{FtlDnssecType, FtlMemory, FtlQueryReplyType, FtlQueryStatus, FtlQueryType},
     routes::{auth::User, stats::history::get_history::get_history},
-    util::{Error, ErrorKind, Reply}
+    services::PiholeModule,
+    util::{reply_result, Error, ErrorKind, Reply}
 };
 use base64::{decode, encode};
 use failure::ResultExt;
@@ -22,17 +23,38 @@ use rocket::{
     request::{Form, FromFormValue},
     State
 };
+use shaku_rocket::{Inject, InjectProvided};
 
 /// Get the query history according to the specified parameters
 #[get("/stats/history?<params..>")]
 pub fn history(
     _auth: User,
     ftl_memory: State<FtlMemory>,
-    env: State<Env>,
+    env: Inject<PiholeModule, Env>,
     params: Form<HistoryParams>,
-    db: FtlDatabase
+    db: InjectProvided<PiholeModule, FtlDatabase>
 ) -> Reply {
-    get_history(&ftl_memory, &env, params.into_inner(), &db)
+    reply_result(get_history(&ftl_memory, &env, params.into_inner(), &db))
+}
+
+/// The structure returned by the history endpoint
+#[derive(Serialize, PartialEq, Debug)]
+pub struct HistoryReply {
+    pub history: Vec<QueryReply>,
+    pub cursor: Option<String>
+}
+
+/// The structure of queries returned by the history endpoint
+#[derive(Serialize, PartialEq, Debug)]
+pub struct QueryReply {
+    pub timestamp: u64,
+    pub r#type: u8,
+    pub status: u8,
+    pub domain: String,
+    pub client: String,
+    pub dnssec: u8,
+    pub reply: u8,
+    pub response_time: u32
 }
 
 /// Represents the possible GET parameters on `/stats/history`

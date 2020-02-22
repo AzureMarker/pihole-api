@@ -12,7 +12,6 @@ mod add_list;
 mod common;
 mod delete_list;
 mod get_list;
-mod list;
 mod status;
 
 pub use self::{add_list::*, delete_list::*, get_list::*, status::*};

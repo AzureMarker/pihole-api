@@ -26,7 +26,7 @@ pub fn over_time_history(ftl_memory: State<FtlMemory>) -> Reply {
         .take(get_current_over_time_slot(&over_time) + 1)
         // Skip the overTime slots without any data
         .skip_while(|time| {
-            (time.total_queries <= 0 && time.blocked_queries <= 0)
+            time.total_queries <= 0 && time.blocked_queries <= 0
         })
         .map(|time| {
             OverTimeItem {

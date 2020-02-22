@@ -12,17 +12,19 @@ use crate::{
     env::Env,
     ftl::FtlMemory,
     routes::auth::User,
+    services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
 };
 use rocket::{request::Form, State};
+use shaku_rocket::Inject;
 
 /// Get the `num` most recently blocked domains
 #[get("/stats/recent_blocked?<params..>")]
 pub fn recent_blocked(
     _auth: User,
     ftl_memory: State<FtlMemory>,
-    env: State<Env>,
+    env: Inject<PiholeModule, Env>,
     params: Form<RecentBlockedParams>
 ) -> Reply {
     get_recent_blocked(&ftl_memory, &env, params.num.unwrap_or(1))
@@ -68,10 +70,12 @@ pub fn get_recent_blocked(ftl_memory: &FtlMemory, env: &Env, num: usize) -> Repl
 #[cfg(test)]
 mod test {
     use crate::{
+        env::PiholeFile,
         ftl::{
             FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
             FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, MAGIC_BYTE
         },
+        settings::FtlPrivacyLevel,
         testing::TestBuilder
     };
     use std::collections::HashMap;
@@ -94,8 +98,7 @@ mod test {
                 reply_type: FtlQueryReplyType::IP,
                 dnssec_type: FtlDnssecType::Unspecified,
                 is_complete: true,
-                is_private: false,
-                ad_bit: false
+                privacy_level: FtlPrivacyLevel::ShowAll
             }
         };
     }
@@ -107,7 +110,7 @@ mod test {
             query!(2, Gravity, 1),
             query!(3, Blacklist, 2),
             query!(4, Wildcard, 3),
-            query!(5, ExternalBlock, 4),
+            query!(5, ExternalBlockIp, 4),
             query!(6, Cache, 0),
         ]
     }
@@ -159,6 +162,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked")
             .ftl_memory(test_memory())
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!(["domain5.com"]))
             .test();
     }
@@ -169,6 +173,7 @@ mod test {
         TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked?num=3")
             .ftl_memory(test_memory())
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!(["domain5.com", "domain4.com", "domain3.com"]))
             .test();
     }
@@ -179,6 +184,7 @@ mod test {
     fn less_than_requested() {
         TestBuilder::new()
             .endpoint("/admin/api/stats/recent_blocked?num=10")
+            .file(PiholeFile::FtlConfig, "")
             .ftl_memory(test_memory())
             .expect_json(json!([
                 "domain5.com",

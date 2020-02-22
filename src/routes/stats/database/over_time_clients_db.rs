@@ -15,17 +15,18 @@ use crate::{
     routes::{
         auth::User,
         stats::{
-            common::{get_excluded_clients, get_hidden_client_ip},
+            common::{get_excluded_clients, HIDDEN_CLIENT},
             database::over_time_history_db::align_from_until,
             over_time_clients::{OverTimeClientItem, OverTimeClients}
         }
     },
+    services::PiholeModule,
     settings::ValueType,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, SqliteConnection};
 use failure::ResultExt;
-use rocket::State;
+use shaku_rocket::{Inject, InjectProvided};
 use std::collections::HashMap;
 
 /// Get the clients queries over time data from the database
@@ -35,8 +36,8 @@ pub fn over_time_clients_db(
     until: u64,
     interval: Option<usize>,
     _auth: User,
-    db: FtlDatabase,
-    env: State<Env>
+    db: InjectProvided<PiholeModule, FtlDatabase>,
+    env: Inject<PiholeModule, Env>
 ) -> Reply {
     reply_result(over_time_clients_db_impl(
         from,
@@ -94,8 +95,8 @@ fn over_time_clients_db_impl(
     let clients = client_identifiers
         .into_iter()
         .map(|client_identifier| {
-            if ValueType::Ipv4.is_valid(&client_identifier)
-                || ValueType::Ipv6.is_valid(&client_identifier)
+            if ValueType::IPv4.is_valid(&client_identifier)
+                || ValueType::IPv6.is_valid(&client_identifier)
             {
                 // If the identifier is an IP address, use it as the client IP
                 ClientReply {
@@ -127,7 +128,7 @@ fn get_client_identifiers(
 
     // Find clients which should not be used
     let mut ignored_clients = get_excluded_clients(env)?;
-    ignored_clients.push(get_hidden_client_ip().to_owned());
+    ignored_clients.push(HIDDEN_CLIENT.to_owned());
 
     let client_identifiers = queries
         .select(client)
@@ -178,8 +179,8 @@ fn get_client_over_time(
 mod test {
     use super::{get_client_identifiers, get_client_over_time, over_time_clients_db_impl};
     use crate::{
-        databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        databases::ftl::connect_to_ftl_test_db,
+        env::PiholeFile,
         ftl::ClientReply,
         routes::stats::over_time_clients::{OverTimeClientItem, OverTimeClients},
         testing::TestEnvBuilder
@@ -220,8 +221,10 @@ mod test {
             ]
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
         let actual =
             over_time_clients_db_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, INTERVAL, &db, &env)
                 .unwrap();
@@ -235,8 +238,10 @@ mod test {
     fn client_identifiers() {
         let expected = vec!["127.0.0.1".to_owned(), "10.1.1.1".to_owned()];
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
         let actual = get_client_identifiers(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual, expected);
@@ -247,13 +252,10 @@ mod test {
     fn client_identifiers_excluded() {
         let expected = vec!["127.0.0.1".to_owned()];
 
-        let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=10.1.1.1")
-                .build()
-        );
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=10.1.1.1")
+            .build();
         let actual = get_client_identifiers(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual, expected);
@@ -267,7 +269,7 @@ mod test {
         expected.insert(164_400, 25);
         expected.insert(165_000, 7);
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual =
             get_client_over_time(FROM_TIMESTAMP, UNTIL_TIMESTAMP, INTERVAL, "127.0.0.1", &db)
                 .unwrap();

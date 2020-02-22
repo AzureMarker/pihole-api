@@ -2,18 +2,14 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: pihole/api-build:$CIRCLE_JOB
+    - image: pihole/api-build:v3-$CIRCLE_JOB
   steps:
     - checkout
     - restore_cache:
         keys:
           # Find a cache corresponding to this specific target and Cargo.lock checksum.
-          # When the checksum is different, this key will fail.
           # There are two dashes used between job and checksum to avoid x86_64 using the x86_64-musl cache
-          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
-          # Find a cache corresponding to this specific target.
-          # When the target is different, this key will fail.
-          - v3-cargo-{{ .Environment.CIRCLE_JOB }}--
+          - v5-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
     - run:
         name: "Download Web"
         command: |
@@ -43,11 +39,11 @@ version: 2
     - run:
         name: "Code Style Check"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo fmt -- --check
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo fmt -- --check
     - run:
         name: "Code Lint Check"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || cargo clippy --release --all-targets --all-features -- -D clippy::all
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo clippy --all-targets --all-features -- -D clippy::all
     - run:
         name: "Build"
         command: |
@@ -56,31 +52,92 @@ version: 2
     - run:
         name: "Test"
         command: |
-          [[ "$CIRCLE_JOB" != "x86_64" ]] || time cargo test --release --target $TARGET
+          if [[ "$CIRCLE_JOB" != "x86_64-musl" ]]; then
+            exit 0
+          fi
+
+          # These flags are used so the test results can be used for code coverage
+          export CARGO_INCREMENTAL=0
+          export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Zno-landing-pads"
+
+          # Delete previous code coverage info
+          find target -name *.gcda -type f -delete
+
+          time cargo test
+    - run:
+        name: "Upload Code Coverage"
+        command: |
+          if [[ "$CIRCLE_JOB" != "x86_64-musl" ]]; then
+            exit 0
+          fi
+
+          grcov target -t lcov --branch --ignore-not-existing --ignore-dir "/*" --ignore-dir "*build.rs" -o lcov.info
+          bash <(curl -s https://codecov.io/bash) -f lcov.info
     - run:
         name: "Build DEB"
         command: |
-          export DEB_BUILD_OPTIONS=nostrip
+          export DEB_BUILD_OPTIONS=nostrip TARGET_PROFILE=release
           dpkg-buildpackage -b -a $DEB_ARCH
           mv ../pihole-api*.deb .
           [[ "$CIRCLE_JOB" != "arm" ]] || for file in pihole-api*.deb; do mv $file ${file//armhf/arm}; done
     - run:
-        name: "Upload"
+        name: "Upload Artifacts"
         command: |
-          [ -z "$FTL_SECRET" ] && exit 0
+          [[ -z "$FTL_SECRET" || "$CIRCLE_PR_NUMBER" != "" ]] && exit 0
+          DIR="${CIRCLE_TAG:-${CIRCLE_BRANCH}}"
+
           sha1sum ${BIN_NAME} > ${BIN_NAME}.sha1
           cat ${BIN_NAME}.sha1
-          curl https://ftl.pi-hole.net:8080/FTL-client -o FTL-client
-          chmod +x ./FTL-client
-          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}" "${FTL_SECRET}"
-          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" "${BIN_NAME}.sha1" "${FTL_SECRET}"
-          [[ "$CIRCLE_PR_NUMBER" == "" ]] && ./FTL-client "${CIRCLE_BRANCH}" pihole-api*.deb "${FTL_SECRET}"
-          rm ./FTL-client
+
+          mkdir -p ~/.ssh
+          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+          sftp -b - $SSH_USER@$SSH_HOST <<< "-mkdir ${DIR}
+          put ${BIN_NAME}* ${DIR}
+          put pihole-api*.deb ${DIR}"
+
+          if [[ "$CIRCLE_JOB" == "x86_64-musl" ]]; then
+            echo "${CIRCLE_SHA1:0:7}" > API_HASH
+            sftp $SSH_USER@$SSH_HOST <<< "put API_HASH ${DIR}"
+          fi
+      # Save the files necessary for building the RPM
+    - persist_to_workspace:
+        root: .
+        paths:
+          - target/*/release/pihole_api
+          - Makefile
+          - LICENSE
+          - debian/pihole-API.service
+          - rpm/pihole-api.spec
     - save_cache:
-        key: v3-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
+        key: v5-cargo-{{ .Environment.CIRCLE_JOB }}--{{ checksum "Cargo.lock" }}
         paths:
           - target
           - /root/.cargo
+
+.rpm_template: &rpm_template
+  docker:
+    - image: pihole/rpm-builder:v1
+  steps:
+    - attach_workspace:
+        at: .
+    - run:
+        name: "Build RPM"
+        command: |
+          export TARGET_PROFILE=release
+          mkdir -p ~/rpmbuild/{SOURCES,SPECS}
+          mv rpm/pihole-api.spec ~/rpmbuild/SPECS
+          mv * ~/rpmbuild/SOURCES
+          rpmbuild -bb ~/rpmbuild/SPECS/pihole-api.spec --target $RPM_ARCH
+    - run:
+        name: "Upload"
+        command: |
+          [[ -z "$FTL_SECRET" || "$CIRCLE_PR_NUMBER" != "" ]] && exit 0
+          DIR="${CIRCLE_TAG:-${CIRCLE_BRANCH}}"
+          mv ~/rpmbuild/RPMS/$RPM_ARCH/pihole-api*.rpm .
+          mkdir -p ~/.ssh
+          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+          sftp -b - $SSH_USER@$SSH_HOST <<< "-mkdir ${DIR}
+          put pihole-api*.rpm ${DIR}"
 
 jobs:
   arm:
@@ -97,6 +154,12 @@ jobs:
       TARGET: "armv7-unknown-linux-gnueabihf"
       DEB_ARCH: "armhf"
 
+  armhf-rpm:
+    <<: *rpm_template
+    environment:
+      TARGET: "armv7-unknown-linux-gnueabihf"
+      RPM_ARCH: "armhfp"
+
   aarch64:
     <<: *job_template
     environment:
@@ -104,19 +167,24 @@ jobs:
       TARGET: "aarch64-unknown-linux-gnu"
       DEB_ARCH: "arm64"
 
-  x86_64:
-    <<: *job_template
+  aarch64-rpm:
+    <<: *rpm_template
     environment:
-      BIN_NAME: "pihole-API-linux-x86_64"
-      TARGET: "x86_64-unknown-linux-gnu"
-      DEB_ARCH: "amd64"
+      TARGET: "aarch64-unknown-linux-gnu"
+      RPM_ARCH: "aarch64"
 
   x86_64-musl:
     <<: *job_template
     environment:
-      BIN_NAME: "pihole-API-musl-linux-x86_64"
+      BIN_NAME: "pihole-API-linux-x86_64"
       TARGET: "x86_64-unknown-linux-musl"
-      DEB_ARCH: "musl-linux-amd64"
+      DEB_ARCH: "amd64"
+
+  x86_64-musl-rpm:
+    <<: *rpm_template
+    environment:
+      TARGET: "x86_64-unknown-linux-musl"
+      RPM_ARCH: "x86_64"
 
   x86_32:
     <<: *job_template
@@ -125,13 +193,30 @@ jobs:
       TARGET: "i686-unknown-linux-gnu"
       DEB_ARCH: "i386"
 
+  x86_32-rpm:
+    <<: *rpm_template
+    environment:
+      TARGET: "i686-unknown-linux-gnu"
+      RPM_ARCH: "i386"
+
 workflows:
   version: 2
   build:
     jobs:
       - arm
       - armhf
+      - armhf-rpm:
+          requires:
+            - armhf
       - aarch64
-      - x86_64
+      - aarch64-rpm:
+          requires:
+            - aarch64
       - x86_64-musl
+      - x86_64-musl-rpm:
+          requires:
+            - x86_64-musl
       - x86_32
+      - x86_32-rpm:
+          requires:
+            - x86_32

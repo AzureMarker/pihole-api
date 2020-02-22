@@ -9,11 +9,24 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    env::PiholeFile,
-    ftl::{FtlCounters, FtlMemory, FtlSettings},
+    databases::{
+        ftl::{connect_to_ftl_test_db, FtlDatabase},
+        gravity::{connect_to_gravity_test_db, GravityDatabase},
+        DatabaseService, FakeDatabaseService
+    },
+    env::{Config, Env, PiholeFile},
+    ftl::{FtlConnectionType, FtlCounters, FtlMemory, FtlSettings},
+    services::PiholeModule,
     setup
 };
-use rocket::http::{ContentType, Header, Method, Status};
+use rocket::{
+    http::{ContentType, Header, Method, Status},
+    local::Client,
+    Rocket
+};
+use shaku::{
+    provider::ProviderFn, ContainerBuilder, HasComponent, HasProvider, Interface, ProvidedInterface
+};
 use std::{
     collections::HashMap,
     fs::File,
@@ -61,9 +74,10 @@ impl TestEnvBuilder {
         self
     }
 
-    /// Build the environment data. This can be used to create a `Env::Test`
-    pub fn build(self) -> HashMap<PiholeFile, NamedTempFile> {
-        let mut config_data = HashMap::new();
+    /// Build the environment. This will create an `Env::Test` with a default
+    /// config.
+    pub fn build(self) -> Env {
+        let mut env_data = HashMap::new();
 
         // Create temporary mock files
         for mut test_file in self.test_files {
@@ -72,14 +86,14 @@ impl TestEnvBuilder {
             test_file.temp_file.seek(SeekFrom::Start(0)).unwrap();
 
             // Save the file for the test
-            config_data.insert(test_file.pihole_file, test_file.temp_file);
+            env_data.insert(test_file.pihole_file, test_file.temp_file);
         }
 
-        config_data
+        Env::Test(Config::default(), env_data)
     }
 
     /// Get a copy of the inner test files for later verification
-    pub fn get_test_files(&self) -> Vec<TestFile<File>> {
+    pub fn clone_test_files(&self) -> Vec<TestFile<File>> {
         let mut test_files = Vec::new();
 
         for test_file in &self.test_files {
@@ -139,13 +153,16 @@ pub struct TestBuilder {
     method: Method,
     headers: Vec<Header<'static>>,
     should_auth: bool,
+    auth_required: bool,
     body_data: Option<serde_json::Value>,
     ftl_data: HashMap<String, Vec<u8>>,
     ftl_memory: FtlMemory,
-    test_config_builder: TestEnvBuilder,
+    test_env_builder: TestEnvBuilder,
     expected_json: serde_json::Value,
     expected_status: Status,
-    needs_database: bool
+    needs_database: bool,
+    container_builder: ContainerBuilder<PiholeModule>,
+    rocket_hooks: Vec<Box<dyn FnOnce(Rocket) -> Rocket>>
 }
 
 impl TestBuilder {
@@ -155,6 +172,7 @@ impl TestBuilder {
             method: Method::Get,
             headers: Vec::new(),
             should_auth: true,
+            auth_required: true,
             body_data: None,
             ftl_data: HashMap::new(),
             ftl_memory: FtlMemory::Test {
@@ -167,14 +185,16 @@ impl TestBuilder {
                 counters: FtlCounters::default(),
                 settings: FtlSettings::default()
             },
-            test_config_builder: TestEnvBuilder::new(),
+            test_env_builder: TestEnvBuilder::new(),
             expected_json: json!({
                 "data": [],
                 "errors": []
             })
             .into(),
             expected_status: Status::Ok,
-            needs_database: false
+            needs_database: false,
+            container_builder: ContainerBuilder::new(),
+            rocket_hooks: Vec::new()
         }
     }
 
@@ -198,6 +218,12 @@ impl TestBuilder {
         self
     }
 
+    /// If the server requires authentication for protected routes
+    pub fn auth_required(mut self, auth_required: bool) -> Self {
+        self.auth_required = auth_required;
+        self
+    }
+
     pub fn body<T: Into<serde_json::Value>>(mut self, body: T) -> Self {
         self.body_data = Some(body.into());
         self
@@ -214,7 +240,7 @@ impl TestBuilder {
     }
 
     pub fn file(mut self, pihole_file: PiholeFile, initial_data: &str) -> Self {
-        self.test_config_builder = self.test_config_builder.file(pihole_file, initial_data);
+        self.test_env_builder = self.test_env_builder.file(pihole_file, initial_data);
         self
     }
 
@@ -224,8 +250,8 @@ impl TestBuilder {
         initial_data: &str,
         expected_data: &str
     ) -> Self {
-        self.test_config_builder =
-            self.test_config_builder
+        self.test_env_builder =
+            self.test_env_builder
                 .file_expect(pihole_file, initial_data, expected_data);
         self
     }
@@ -240,23 +266,78 @@ impl TestBuilder {
         self
     }
 
+    // This method is not used for now, but could be in the the future
+    #[allow(unused)]
     pub fn need_database(mut self, need_database: bool) -> Self {
         self.needs_database = need_database;
         self
     }
 
-    pub fn test(self) {
+    #[allow(unused)]
+    pub fn mock_component<I: Interface + ?Sized>(mut self, component: Box<I>) -> Self
+    where
+        PiholeModule: HasComponent<I>
+    {
+        self.container_builder.with_component_override(component);
+        self
+    }
+
+    pub fn mock_provider<I: ProvidedInterface + ?Sized>(
+        mut self,
+        provider_fn: ProviderFn<PiholeModule, I>
+    ) -> Self
+    where
+        PiholeModule: HasProvider<I>
+    {
+        self.container_builder.with_provider_override(provider_fn);
+        self
+    }
+
+    pub fn test(mut self) {
         // Save the files for verification
-        let test_files = self.test_config_builder.get_test_files();
+        let test_files = self.test_env_builder.clone_test_files();
+
+        let api_key = if self.auth_required {
+            Some("test_key".to_owned())
+        } else {
+            None
+        };
+        let env = self.test_env_builder.build();
+        let config = env.config().clone();
+
+        // Configure the container builder
+        self.container_builder
+            .with_component_override(Box::new(env))
+            .with_component_override(Box::new(FtlConnectionType::Test(self.ftl_data)));
+
+        if self.needs_database {
+            self.container_builder
+                .with_provider_override::<GravityDatabase>(Box::new(|_| {
+                    Ok(connect_to_gravity_test_db())
+                }))
+                .with_provider_override::<FtlDatabase>(Box::new(|_| {
+                    Ok(Box::new(connect_to_ftl_test_db()))
+                }));
+        } else {
+            self.container_builder
+                .with_component_override::<dyn DatabaseService<GravityDatabase>>(Box::new(
+                    FakeDatabaseService
+                ))
+                .with_component_override::<dyn DatabaseService<FtlDatabase>>(Box::new(
+                    FakeDatabaseService
+                ));
+        }
+
+        // Configure the test server
+        let mut rocket = setup::test(self.ftl_memory, &config, api_key, self.container_builder);
+
+        // Execute the Rocket hooks
+        for hook in self.rocket_hooks {
+            rocket = hook(rocket);
+        }
 
         // Start the test client
-        let env_data = self.test_config_builder.build();
-        let client = setup::test(
-            self.ftl_data,
-            self.ftl_memory,
-            env_data,
-            self.needs_database
-        );
+        let client = Client::new(rocket).unwrap();
 
         // Create the request
         let mut request = client.req(self.method, self.endpoint);

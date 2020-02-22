@@ -18,15 +18,21 @@ use crate::{
             common::get_current_over_time_slot
         }
     },
+    services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
 };
 use rocket::State;
+use shaku_rocket::Inject;
 use std::cmp::Ordering;
 
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
-pub fn over_time_clients(_auth: User, ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
+pub fn over_time_clients(
+    _auth: User,
+    ftl_memory: State<FtlMemory>,
+    env: Inject<PiholeModule, Env>
+) -> Reply {
     // Check if client details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
         >= FtlPrivacyLevel::HideDomainsAndClients
@@ -179,6 +185,7 @@ mod test {
             .endpoint("/admin/api/stats/overTime/clients")
             .ftl_memory(test_data())
             .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=client1")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "clients": [
                     { "name": "",        "ip": "10.1.1.2" },

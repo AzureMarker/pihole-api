@@ -21,9 +21,12 @@ use std::{
 };
 
 #[cfg(test)]
+use failure::Fail;
+use shaku::{Component, ContainerBuildContext, Module};
+#[cfg(test)]
 use std::{
     collections::HashMap,
-    io::{Read, Write}
+    io::{self, Read, Write}
 };
 #[cfg(test)]
 use tempfile::{tempfile, NamedTempFile};
@@ -34,6 +37,22 @@ pub enum Env {
     Production(Config),
     #[cfg(test)]
     Test(Config, HashMap<PiholeFile, NamedTempFile>)
+}
+
+// TODO: make this less awkward?
+impl<M: Module> Component<M> for Env {
+    type Interface = Self;
+    type Parameters = Config;
+
+    fn build(_: &mut ContainerBuildContext<M>, config: Config) -> Box<Env> {
+        Box::new(Env::Production(config))
+    }
+}
+
+impl Default for Env {
+    fn default() -> Self {
+        Env::Production(Config::default())
+    }
 }
 
 impl Clone for Env {
@@ -61,7 +80,7 @@ impl Env {
     /// Get the location of a file
     pub fn file_location(&self, file: PiholeFile) -> &str {
         match self {
-            Env::Production(config) => config.file_location(file),
+            Env::Production(config) => config.file_locations.get(file),
             #[cfg(test)]
             Env::Test(_, _) => file.default_location()
         }
@@ -82,7 +101,11 @@ impl Env {
                     .reopen()
                     .context(ErrorKind::Unknown)
                     .map_err(Error::from),
-                None => tempfile().context(ErrorKind::Unknown).map_err(Error::from)
+                // Return a NotFound error, wrapped in a FileRead error
+                None => Err(Error::from(
+                    io::Error::from(io::ErrorKind::NotFound)
+                        .context(ErrorKind::FileRead(self.file_location(file).to_owned()))
+                ))
             }
         }
     }
@@ -118,7 +141,13 @@ impl Env {
             Env::Test(_, map) => {
                 let file = match map.get(&file) {
                     Some(file) => file.reopen().context(ErrorKind::Unknown)?,
-                    None => return tempfile().context(ErrorKind::Unknown).map_err(Error::from)
+                    None => {
+                        // Return a NotFound error, wrapped in a FileRead error
+                        return Err(Error::from(
+                            io::Error::from(io::ErrorKind::NotFound)
+                                .context(ErrorKind::FileRead(self.file_location(file).to_owned()))
+                        ));
+                    }
                 };
 
                 if !append {
@@ -146,12 +175,18 @@ impl Env {
                 let mut from_file = match map.get(&from) {
                     Some(file) => file.reopen().context(ErrorKind::Unknown)?,
                     // It's an error if the from file does not exist
-                    None => return Err(Error::from(ErrorKind::Unknown))
+                    None => {
+                        // Return a NotFound error, wrapped in a FileRead error
+                        return Err(Error::from(
+                            io::Error::from(io::ErrorKind::NotFound)
+                                .context(ErrorKind::FileRead(self.file_location(from).to_owned()))
+                        ));
+                    }
                 };
 
                 let mut to_file = match map.get(&to) {
                     Some(file) => file.reopen().context(ErrorKind::Unknown)?,
-                    // It's fine if the two file does not exist, create one
+                    // It's fine if the to file does not exist, create one
                     None => tempfile().context(ErrorKind::Unknown)?
                 };
 

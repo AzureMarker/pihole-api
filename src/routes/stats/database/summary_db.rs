@@ -19,12 +19,13 @@ use crate::{
             summary::{ReplyTypes, Summary, TotalQueries}
         }
     },
+    services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::prelude::*;
 use failure::ResultExt;
-use rocket::State;
+use shaku_rocket::{Inject, InjectProvided};
 
 /// Get summary data from database
 #[get("/stats/database/summary?<from>&<until>")]
@@ -32,8 +33,8 @@ pub fn get_summary_db(
     from: u64,
     until: u64,
     _auth: User,
-    db: FtlDatabase,
-    env: State<Env>
+    db: InjectProvided<PiholeModule, FtlDatabase>,
+    env: Inject<PiholeModule, Env>
 ) -> Reply {
     reply_result(get_summary_impl(
         from,
@@ -172,12 +173,12 @@ mod test {
         get_blocked_query_count, get_query_status_count, get_summary_impl, get_unique_domain_count
     };
     use crate::{
-        databases::ftl::connect_to_test_db,
-        env::{Config, Env},
+        databases::ftl::connect_to_ftl_test_db,
+        env::PiholeFile,
         ftl::FtlQueryStatus,
-        routes::stats::summary::{ReplyTypes, Summary, TotalQueries}
+        routes::stats::summary::{ReplyTypes, Summary, TotalQueries},
+        testing::TestEnvBuilder
     };
-    use std::collections::HashMap;
 
     const FROM_TIMESTAMP: u64 = 0;
     const UNTIL_TIMESTAMP: u64 = 177_180;
@@ -213,8 +214,10 @@ mod test {
             status: "enabled"
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
         let actual_summary = get_summary_impl(FROM_TIMESTAMP, UNTIL_TIMESTAMP, &db, &env).unwrap();
 
         assert_eq!(actual_summary, expected_summary);
@@ -225,7 +228,7 @@ mod test {
     fn blocked_query_count() {
         let expected = 0;
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_blocked_query_count(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
 
         assert_eq!(actual, expected);
@@ -236,7 +239,7 @@ mod test {
     fn unique_domain_count() {
         let expected = 11;
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_unique_domain_count(&db, FROM_TIMESTAMP, UNTIL_TIMESTAMP).unwrap();
 
         assert_eq!(actual, expected);
@@ -247,7 +250,7 @@ mod test {
     fn query_status_count() {
         let expected = 26;
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_query_status_count(
             &db,
             FROM_TIMESTAMP,

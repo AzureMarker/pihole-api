@@ -11,17 +11,19 @@
 use crate::{
     env::{Env, PiholeFile},
     routes::dns::common::reload_dns,
+    services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
     util::{reply_data, reply_error, reply_success, Error, ErrorKind, Reply}
 };
 use rocket::State;
 use rocket_contrib::json::Json;
+use shaku_rocket::Inject;
 use std::time::Duration;
 use task_scheduler::Scheduler;
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
-pub fn status(env: State<Env>) -> Reply {
+pub fn status(env: Inject<PiholeModule, Env>) -> Reply {
     let status = if SetupVarsEntry::BlockingEnabled.is_true(&env)? {
         "enabled"
     } else {
@@ -34,7 +36,7 @@ pub fn status(env: State<Env>) -> Reply {
 /// Enable/Disable blocking
 #[post("/dns/status", data = "<data>")]
 pub fn change_status(
-    env: State<Env>,
+    env: Inject<PiholeModule, Env>,
     scheduler: State<Scheduler>,
     data: Json<ChangeStatus>
 ) -> Reply {
@@ -150,7 +152,7 @@ pub struct ChangeStatus {
 mod test {
     use super::{disable, enable};
     use crate::{
-        env::{Config, Env, PiholeFile},
+        env::PiholeFile,
         testing::{TestBuilder, TestEnvBuilder},
         util::ErrorKind
     };
@@ -209,12 +211,9 @@ mod test {
     /// Return an error if blocking is enabled and we try to enable it again
     #[test]
     fn action_enable_error() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
+            .build();
 
         assert_eq!(
             enable(&env).map_err(|e| e.kind()),
@@ -245,12 +244,9 @@ mod test {
     /// Return an error if blocking is disabled and we try to disable it again
     #[test]
     fn action_disable_error() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=false")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=false")
+            .build();
 
         assert_eq!(
             disable(&env, None, None).map_err(|e| e.kind()),

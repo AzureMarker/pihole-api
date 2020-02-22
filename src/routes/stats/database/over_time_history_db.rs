@@ -12,10 +12,12 @@ use crate::{
     databases::ftl::FtlDatabase,
     ftl::BLOCKED_STATUSES,
     routes::{auth::User, stats::over_time_history::OverTimeItem},
+    services::PiholeModule,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
+use shaku_rocket::InjectProvided;
 use std::collections::HashMap;
 
 /// Get the query history over time from the database
@@ -26,7 +28,7 @@ pub fn over_time_history_db(
     until: u64,
     interval: Option<usize>,
     _auth: User,
-    db: FtlDatabase
+    db: InjectProvided<PiholeModule, FtlDatabase>
 ) -> Reply {
     reply_result(over_time_history_db_impl(
         from,
@@ -154,7 +156,7 @@ fn get_blocked_intervals(
 mod test {
     use super::{get_blocked_intervals, get_total_intervals, over_time_history_db_impl};
     use crate::{
-        databases::ftl::connect_to_test_db, routes::stats::over_time_history::OverTimeItem
+        databases::ftl::connect_to_ftl_test_db, routes::stats::over_time_history::OverTimeItem
     };
     use std::collections::HashMap;
 
@@ -183,7 +185,7 @@ mod test {
             },
         ];
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = over_time_history_db_impl(164_400, 165_600, INTERVAL, &db).unwrap();
 
         assert_eq!(actual, expected);
@@ -200,7 +202,7 @@ mod test {
         expected.insert(174_000, 8);
         expected.insert(175_800, 3);
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_total_intervals(FROM_TIMESTAMP, UNTIL_TIMESTAMP, INTERVAL, &db).unwrap();
 
         assert_eq!(actual, expected);
@@ -211,7 +213,7 @@ mod test {
     fn blocked_intervals() {
         let expected = HashMap::new();
 
-        let db = connect_to_test_db();
+        let db = connect_to_ftl_test_db();
         let actual = get_blocked_intervals(FROM_TIMESTAMP, UNTIL_TIMESTAMP, INTERVAL, &db).unwrap();
 
         assert_eq!(actual, expected);

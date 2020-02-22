@@ -92,8 +92,8 @@ pub fn filter_excluded_domains_db<'a>(
 mod tests {
     use super::{filter_excluded_domains, filter_excluded_domains_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        databases::ftl::connect_to_ftl_test_db,
+        env::PiholeFile,
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
             database::execute_query,
@@ -106,12 +106,9 @@ mod tests {
     /// No queries should be filtered out if `API_EXCLUDE_DOMAINS` is empty
     #[test]
     fn domains_empty() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_DOMAINS=")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_DOMAINS=")
+            .build();
         let queries = test_queries();
         let expected_queries: Vec<&FtlQuery> = queries.iter().collect();
         let filtered_queries: Vec<&FtlQuery> = filter_excluded_domains(
@@ -130,12 +127,9 @@ mod tests {
     /// removed
     #[test]
     fn domains() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_DOMAINS=domain2.com")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_DOMAINS=domain2.com")
+            .build();
         let queries = test_queries();
         let expected_queries: Vec<&FtlQuery> =
             queries.iter().filter(|query| query.id != 4).collect();
@@ -157,18 +151,15 @@ mod tests {
     fn domains_db() {
         use crate::databases::ftl::queries::dsl::*;
 
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::SetupVars,
-                    "API_EXCLUDE_DOMAINS=0.ubuntu.pool.ntp.org,1.ubuntu.pool.ntp.org"
-                )
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(
+                PiholeFile::SetupVars,
+                "API_EXCLUDE_DOMAINS=0.ubuntu.pool.ntp.org,1.ubuntu.pool.ntp.org"
+            )
+            .build();
 
         let db_query = filter_excluded_domains_db(queries.into_boxed(), &env).unwrap();
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         for query in filtered_queries {
             assert_ne!(query.domain, "0.ubuntu.pool.ntp.org".to_owned());

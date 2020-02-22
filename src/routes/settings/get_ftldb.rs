@@ -11,13 +11,14 @@
 use crate::{
     ftl::FtlConnectionType,
     routes::auth::User,
+    services::PiholeModule,
     util::{reply_data, Reply}
 };
-use rocket::State;
+use shaku_rocket::Inject;
 
 /// Read db stats from FTL
 #[get("/settings/ftldb")]
-pub fn get_ftldb(ftl: State<FtlConnectionType>, _auth: User) -> Reply {
+pub fn get_ftldb(ftl: Inject<PiholeModule, FtlConnectionType>, _auth: User) -> Reply {
     let mut con = ftl.connect("dbstats")?;
 
     // Read in FTL's database stats

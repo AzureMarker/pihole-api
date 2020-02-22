@@ -10,7 +10,7 @@
 
 use crate::{
     env::{Env, PiholeFile},
-    settings::{ConfigEntry, SetupVarsEntry},
+    settings::{get_ipv6_address_and_port, ConfigEntry, SetupVarsEntry},
     util::{Error, ErrorKind}
 };
 use failure::ResultExt;
@@ -70,7 +70,26 @@ fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Err
             break;
         }
 
-        writeln!(config_file, "server={}", dns).context(ErrorKind::DnsmasqConfigWrite)?;
+        // Transform addresses with ports into the format dnsmasq understands
+        // Example: 127.0.0.1:5353               -> 127.0.0.1#5353
+        //          [1fff:0:a88:85a3::ac1f]:8001 -> 1fff:0:a88:85a3::ac1f#8001
+        let dnsmasq_address = match get_ipv6_address_and_port(&dns) {
+            Some((address, None)) => {
+                // This is an IPv6 address without a port
+                address.to_owned()
+            }
+            Some((address, Some(port))) => {
+                // This is an IPv6 address with a port
+                format!("{}#{}", address, port)
+            }
+            None => {
+                // This is an IPv4 address
+                dns.replace(":", "#")
+            }
+        };
+
+        writeln!(config_file, "server={}", dnsmasq_address)
+            .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
     Ok(())
@@ -141,6 +160,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
         "local" => config_file
             .write_all(b"local-service\n")
             .context(ErrorKind::DnsmasqConfigWrite)?,
+        #[allow(clippy::wildcard_in_or_patterns)]
         "single" | _ => {
             writeln!(
                 config_file,
@@ -154,12 +174,16 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
     if SetupVarsEntry::ConditionalForwarding.is_true(env)? {
         let ip = SetupVarsEntry::ConditionalForwardingIp.read(env)?;
 
+        // Add an entry to use the custom upstream for the custom domain,
+        // and add an entry to forward reverse lookups to the custom upstream
         writeln!(
             config_file,
-            "server=/{}/{}\nserver=/{}/{}",
+            "server=/{}/{}\n\
+             rev-server={}/{},{}",
             SetupVarsEntry::ConditionalForwardingDomain.read(env)?,
             ip,
-            SetupVarsEntry::ConditionalForwardingReverse.read(env)?,
+            ip,
+            SetupVarsEntry::ConditionalForwardingCIDR.read(env)?,
             ip
         )
         .context(ErrorKind::DnsmasqConfigWrite)?;
@@ -183,21 +207,30 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
     };
 
     // Main DHCP settings. The "wpad" lines fix CERT vulnerability VU#598349 by
-    // preventing clients from using "wpad" as their hostname.
+    // preventing clients from using "wpad" as their hostname. We also prevent
+    // clients from using "localhost" as their hostname, as this confuses
+    // Windows
     writeln!(
         config_file,
         "dhcp-authoritative\n\
          dhcp-leasefile=/etc/pihole/dhcp.leases\n\
          dhcp-range={},{},{}\n\
          dhcp-option=option:router,{}\n\
-         dhcp-name-match=set:wpad-ignore,wpad\n\
-         dhcp-ignore-names=tag:wpad-ignore",
+         dhcp-name-match=set:hostname-ignore,wpad\n\
+         dhcp-name-match=set:hostname-ignore,localhost\n\
+         dhcp-ignore-names=tag:hostname-ignore\n\
+         domain={}",
         SetupVarsEntry::DhcpStart.read(env)?,
         SetupVarsEntry::DhcpEnd.read(env)?,
         lease_time,
-        SetupVarsEntry::DhcpRouter.read(env)?
+        SetupVarsEntry::DhcpRouter.read(env)?,
+        SetupVarsEntry::PiholeDomain.read(env)?
     )
     .context(ErrorKind::DnsmasqConfigWrite)?;
+
+    if SetupVarsEntry::DhcpRapidCommit.is_true(env)? {
+        writeln!(config_file, "dhcp-rapid-commit").context(ErrorKind::DnsmasqConfigWrite)?;
+    }
 
     // Additional settings for IPv6
     if SetupVarsEntry::DhcpIpv6.is_true(env)? {
@@ -222,7 +255,7 @@ mod tests {
         DNSMASQ_HEADER
     };
     use crate::{
-        env::{Config, Env, PiholeFile},
+        env::{Env, PiholeFile},
         testing::TestEnvBuilder,
         util::Error
     };
@@ -250,8 +283,8 @@ mod tests {
             .file_expect(PiholeFile::DnsmasqConfig, "", expected_config)
             .file(PiholeFile::SetupVars, setup_vars);
 
-        let mut dnsmasq_config = env_builder.get_test_files().into_iter().next().unwrap();
-        let env = Env::Test(Config::default(), env_builder.build());
+        let mut dnsmasq_config = env_builder.clone_test_files().into_iter().next().unwrap();
+        let env = env_builder.build();
         let mut file_writer = open_config(&env).unwrap();
 
         test_fn(&mut file_writer, &env).unwrap();
@@ -276,6 +309,36 @@ mod tests {
              PIHOLE_DNS_2=8.8.4.4",
             write_servers
         );
+    }
+
+    /// A DNS server with a port is written using a #
+    #[test]
+    fn dns_server_with_port() {
+        test_config(
+            "server=127.0.0.1#5353\n",
+            "PIHOLE_DNS_1=127.0.0.1:5353",
+            write_servers
+        );
+    }
+
+    /// An IPv6 DNS server without a port is written correctly
+    #[test]
+    fn dns_server_ipv6_no_port() {
+        test_config(
+            "server=f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c\n",
+            "PIHOLE_DNS_1=f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c",
+            write_servers
+        )
+    }
+
+    /// An IPv6 DNS server with a port is written using a #
+    #[test]
+    fn dns_server_ipv6_with_port() {
+        test_config(
+            "server=1fff:0:a88:85a3::ac1f#8001\n",
+            "PIHOLE_DNS_1=[1fff:0:a88:85a3::ac1f]:8001",
+            write_servers
+        )
     }
 
     /// Confirm that non-sequential DNS servers are ignored, that is, stop at
@@ -332,7 +395,7 @@ mod tests {
             host-record=domain.com,127.0.0.1\n\
             local-service\n\
             server=/domain.com/8.8.8.8\n\
-            server=/8.8.8.in-addr.arpa/8.8.8.8\n",
+            rev-server=8.8.8.8/24,8.8.8.8\n",
             "DNS_FQDN_REQUIRED=true\n\
             DNS_BOGUS_PRIV=true\n\
             DNSSEC=true\n\
@@ -341,7 +404,7 @@ mod tests {
             CONDITIONAL_FORWARDING=true\n\
             CONDITIONAL_FORWARDING_IP=8.8.8.8\n\
             CONDITIONAL_FORWARDING_DOMAIN=domain.com\n\
-            CONDITIONAL_FORWARDING_REVERSE=8.8.8.in-addr.arpa",
+            CONDITIONAL_FORWARDING_CIDR=24",
             write_dns_options
         );
     }
@@ -372,8 +435,11 @@ mod tests {
              dhcp-leasefile=/etc/pihole/dhcp.leases\n\
              dhcp-range=192.168.1.50,192.168.1.150,24h\n\
              dhcp-option=option:router,192.168.1.1\n\
-             dhcp-name-match=set:wpad-ignore,wpad\n\
-             dhcp-ignore-names=tag:wpad-ignore\n",
+             dhcp-name-match=set:hostname-ignore,wpad\n\
+             dhcp-name-match=set:hostname-ignore,localhost\n\
+             dhcp-ignore-names=tag:hostname-ignore\n\
+             domain=lan\n\
+             dhcp-rapid-commit\n",
             "PIHOLE_INTERFACE=eth0\n\
              DHCP_ACTIVE=true\n\
              DHCP_START=192.168.1.50\n\
@@ -381,6 +447,7 @@ mod tests {
              DHCP_ROUTER=192.168.1.1\n\
              DHCP_LEASETIME=24\n\
              PIHOLE_DOMAIN=lan\n\
+             DHCP_rapid_commit=true\n\
              DHCP_IPv6=false",
             write_dhcp
         )
@@ -394,8 +461,11 @@ mod tests {
              dhcp-leasefile=/etc/pihole/dhcp.leases\n\
              dhcp-range=192.168.1.50,192.168.1.150,24h\n\
              dhcp-option=option:router,192.168.1.1\n\
-             dhcp-name-match=set:wpad-ignore,wpad\n\
-             dhcp-ignore-names=tag:wpad-ignore\n\
+             dhcp-name-match=set:hostname-ignore,wpad\n\
+             dhcp-name-match=set:hostname-ignore,localhost\n\
+             dhcp-ignore-names=tag:hostname-ignore\n\
+             domain=lan\n\
+             dhcp-rapid-commit\n\
              dhcp-option=option6:dns-server,[::]\n\
              dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,24h\n\
              ra-param=*,0,0\n",
@@ -420,8 +490,11 @@ mod tests {
              dhcp-leasefile=/etc/pihole/dhcp.leases\n\
              dhcp-range=192.168.1.50,192.168.1.150,infinite\n\
              dhcp-option=option:router,192.168.1.1\n\
-             dhcp-name-match=set:wpad-ignore,wpad\n\
-             dhcp-ignore-names=tag:wpad-ignore\n\
+             dhcp-name-match=set:hostname-ignore,wpad\n\
+             dhcp-name-match=set:hostname-ignore,localhost\n\
+             dhcp-ignore-names=tag:hostname-ignore\n\
+             domain=lan\n\
+             dhcp-rapid-commit\n\
              dhcp-option=option6:dns-server,[::]\n\
              dhcp-range=::100,::1ff,constructor:eth0,ra-names,slaac,infinite\n\
              ra-param=*,0,0\n",

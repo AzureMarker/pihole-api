@@ -11,14 +11,16 @@
 use crate::{
     env::Env,
     ftl::{FtlMemory, FtlQueryType},
+    services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
     util::{reply_data, Reply}
 };
 use rocket::State;
+use shaku_rocket::Inject;
 
 /// Get the summary data
 #[get("/stats/summary")]
-pub fn get_summary(ftl_memory: State<FtlMemory>, env: State<Env>) -> Reply {
+pub fn get_summary(ftl_memory: State<FtlMemory>, env: Inject<PiholeModule, Env>) -> Reply {
     let lock = ftl_memory.lock()?;
     let counters = ftl_memory.counters(&lock)?;
 
@@ -195,6 +197,7 @@ mod test {
             .endpoint("/admin/api/stats/summary")
             .ftl_memory(test_data())
             .file(PiholeFile::SetupVars, "BLOCKING_ENABLED=true")
+            .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({
                 "gravity_size": 100_000,
                 "total_queries": {

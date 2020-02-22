@@ -16,24 +16,26 @@ use crate::{
         auth::User,
         stats::{
             check_privacy_level_top_clients,
-            common::{get_excluded_clients, get_hidden_client_ip},
+            common::{get_excluded_clients, HIDDEN_CLIENT},
             database::{get_blocked_query_count, get_query_type_counts},
             top_clients::{TopClientItemReply, TopClientParams, TopClientsReply}
         }
     },
+    services::PiholeModule,
     settings::ValueType,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
-use rocket::{request::Form, State};
+use rocket::request::Form;
+use shaku_rocket::{Inject, InjectProvided};
 
 /// Get the top clients
 #[get("/stats/database/top_clients?<from>&<until>&<params..>")]
 pub fn top_clients_db(
     _auth: User,
-    env: State<Env>,
-    db: FtlDatabase,
+    env: Inject<PiholeModule, Env>,
+    db: InjectProvided<PiholeModule, FtlDatabase>,
     from: u64,
     until: u64,
     params: Form<TopClientParams>
@@ -81,8 +83,8 @@ fn top_clients_db_impl(
         execute_top_clients_query(db, from, until, ignored_clients, blocked, ascending, limit)?
             .into_iter()
             .map(|(client_identifier, count)| {
-                if ValueType::Ipv4.is_valid(&client_identifier)
-                    || ValueType::Ipv6.is_valid(&client_identifier)
+                if ValueType::IPv4.is_valid(&client_identifier)
+                    || ValueType::IPv6.is_valid(&client_identifier)
                 {
                     // If the identifier is an IP address, use it as the client IP
                     TopClientItemReply {
@@ -123,7 +125,7 @@ fn get_ignored_clients(env: &Env) -> Result<Vec<String>, Error> {
     let mut ignored_clients = get_excluded_clients(env)?;
 
     // Ignore the hidden client IP (due to privacy level)
-    ignored_clients.push(get_hidden_client_ip().to_owned());
+    ignored_clients.push(HIDDEN_CLIENT.to_owned());
 
     Ok(ignored_clients)
 }
@@ -182,12 +184,11 @@ fn execute_top_clients_query(
 mod test {
     use super::top_clients_db_impl;
     use crate::{
-        databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        databases::ftl::connect_to_ftl_test_db,
+        env::PiholeFile,
         routes::stats::top_clients::{TopClientItemReply, TopClientParams, TopClientsReply},
         testing::TestEnvBuilder
     };
-    use std::collections::HashMap;
 
     const FROM_TIMESTAMP: u64 = 0;
     const UNTIL_TIMESTAMP: u64 = 177_180;
@@ -212,8 +213,11 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams::default();
         let actual =
             top_clients_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
@@ -231,8 +235,11 @@ mod test {
             blocked_queries: Some(0)
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams {
             blocked: Some(true),
             ..TopClientParams::default()
@@ -256,8 +263,11 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams {
             limit: Some(1),
             ..TopClientParams::default()
@@ -288,8 +298,11 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams {
             ascending: Some(true),
             ..TopClientParams::default()
@@ -309,13 +322,10 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
-                .build()
-        );
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
+            .build();
         let params = TopClientParams::default();
         let actual =
             top_clients_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
@@ -333,13 +343,10 @@ mod test {
             blocked_queries: Some(0)
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
-                .build()
-        );
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::FtlConfig, "PRIVACYLEVEL=2")
+            .build();
         let params = TopClientParams {
             blocked: Some(true),
             ..TopClientParams::default()
@@ -363,13 +370,11 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=127.0.0.1")
-                .build()
-        );
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_EXCLUDE_CLIENTS=127.0.0.1")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopClientParams::default();
         let actual =
             top_clients_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();

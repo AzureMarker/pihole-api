@@ -53,8 +53,8 @@ pub fn filter_setup_vars_setting_db<'a>(
 mod test {
     use super::{filter_setup_vars_setting, filter_setup_vars_setting_db};
     use crate::{
-        databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        databases::ftl::connect_to_ftl_test_db,
+        env::PiholeFile,
         ftl::{FtlQuery, BLOCKED_STATUSES},
         routes::stats::history::{database::execute_query, testing::test_queries},
         testing::TestEnvBuilder
@@ -64,12 +64,9 @@ mod test {
     /// No queries should be shown if `API_QUERY_LOG_SHOW` equals `nothing`
     #[test]
     fn setting_is_nothing() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=nothing")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=nothing")
+            .build();
         let queries = test_queries();
         let filtered_queries: Vec<&FtlQuery> =
             filter_setup_vars_setting(Box::new(queries.iter()), &env)
@@ -83,12 +80,9 @@ mod test {
     /// `permittedonly`
     #[test]
     fn setting_is_permitted() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=permittedonly")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=permittedonly")
+            .build();
         let queries = test_queries();
         let expected_queries: Vec<&FtlQuery> = vec![
             &queries[0],
@@ -109,12 +103,9 @@ mod test {
     /// `blockedonly`
     #[test]
     fn setting_is_blocked() {
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=blockedonly")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=blockedonly")
+            .build();
         let queries = test_queries();
         let expected_queries: Vec<&FtlQuery> =
             vec![&queries[3], &queries[5], &queries[6], &queries[7]];
@@ -132,15 +123,12 @@ mod test {
     fn setting_is_nothing_db() {
         use crate::databases::ftl::queries::dsl::*;
 
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=nothing")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=nothing")
+            .build();
 
         let db_query = filter_setup_vars_setting_db(queries.into_boxed(), &env).unwrap();
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         assert_eq!(filtered_queries.len(), 0);
     }
@@ -151,15 +139,12 @@ mod test {
     fn setting_is_permitted_db() {
         use crate::databases::ftl::queries::dsl::*;
 
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=permittedonly")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=permittedonly")
+            .build();
 
         let db_query = filter_setup_vars_setting_db(queries.into_boxed(), &env).unwrap();
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         for query in filtered_queries {
             assert!(!BLOCKED_STATUSES.contains(&(query.status as i32)));
@@ -172,15 +157,12 @@ mod test {
     fn setting_is_blocked_db() {
         use crate::databases::ftl::queries::dsl::*;
 
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=blockedonly")
-                .build()
-        );
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=blockedonly")
+            .build();
 
         let db_query = filter_setup_vars_setting_db(queries.into_boxed(), &env).unwrap();
-        let filtered_queries = execute_query(&connect_to_test_db(), db_query).unwrap();
+        let filtered_queries = execute_query(&connect_to_ftl_test_db(), db_query).unwrap();
 
         for query in filtered_queries {
             assert!(BLOCKED_STATUSES.contains(&(query.status as i32)));

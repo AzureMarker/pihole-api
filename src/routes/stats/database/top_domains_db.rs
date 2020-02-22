@@ -10,41 +10,45 @@
 
 use crate::{
     databases::ftl::FtlDatabase,
-    env::{Env, PiholeFile},
+    env::Env,
     ftl::BLOCKED_STATUSES,
     routes::{
         auth::User,
         stats::{
             check_privacy_level_top_domains, check_query_log_show_top_domains,
-            common::{get_excluded_domains, get_hidden_domain},
+            common::{get_excluded_domains, HIDDEN_DOMAIN},
             database::{
                 query_types_db::get_query_type_counts, summary_db::get_blocked_query_count
             },
             top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply}
         }
     },
+    services::{domain_audit::DomainAuditRepository, PiholeModule},
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
-use rocket::{request::Form, State};
+use rocket::request::Form;
+use shaku_rocket::{Inject, InjectProvided};
 
 /// Return the top domains
 #[get("/stats/database/top_domains?<from>&<until>&<params..>")]
 pub fn top_domains_db(
     _auth: User,
-    env: State<Env>,
-    db: FtlDatabase,
+    env: Inject<PiholeModule, Env>,
+    db: InjectProvided<PiholeModule, FtlDatabase>,
     from: u64,
     until: u64,
-    params: Form<TopDomainParams>
+    params: Form<TopDomainParams>,
+    domain_audit: InjectProvided<PiholeModule, dyn DomainAuditRepository>
 ) -> Reply {
     reply_result(top_domains_db_impl(
         &env,
         &db as &SqliteConnection,
         from,
         until,
-        params.into_inner()
+        params.into_inner(),
+        &*domain_audit
     ))
 }
 
@@ -54,7 +58,8 @@ fn top_domains_db_impl(
     db: &SqliteConnection,
     from: u64,
     until: u64,
-    params: TopDomainParams
+    params: TopDomainParams,
+    domain_audit: &dyn DomainAuditRepository
 ) -> Result<TopDomainsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
@@ -84,7 +89,7 @@ fn top_domains_db_impl(
     }
 
     // Find domains which should not be considered
-    let ignored_domains = get_ignored_domains(env, audit)?;
+    let ignored_domains = get_ignored_domains(env, audit, domain_audit)?;
 
     // Fetch the top domains and map into the reply structure
     let top_domains: Vec<TopDomainItemReply> =
@@ -114,16 +119,20 @@ fn top_domains_db_impl(
 
 /// Get the list of domains to ignore. If the audit flag is true, audited
 /// domains are ignored (only show unaudited domains).
-fn get_ignored_domains(env: &Env, audit: bool) -> Result<Vec<String>, Error> {
+fn get_ignored_domains(
+    env: &Env,
+    audit: bool,
+    domain_audit: &dyn DomainAuditRepository
+) -> Result<Vec<String>, Error> {
     // Ignore domains excluded via SetupVars
     let mut ignored_domains = get_excluded_domains(env)?;
 
     // Ignore the hidden domain (due to privacy level)
-    ignored_domains.push(get_hidden_domain().to_owned());
+    ignored_domains.push(HIDDEN_DOMAIN.to_owned());
 
     // If audit flag is true, only include unaudited domains
     if audit {
-        ignored_domains.extend(env.read_file_lines(PiholeFile::AuditLog)?);
+        ignored_domains.extend(domain_audit.get_all()?);
     }
 
     Ok(ignored_domains)
@@ -182,12 +191,12 @@ fn execute_top_domains_query(
 mod test {
     use super::top_domains_db_impl;
     use crate::{
-        databases::ftl::connect_to_test_db,
-        env::{Config, Env, PiholeFile},
+        databases::ftl::connect_to_ftl_test_db,
+        env::PiholeFile,
         routes::stats::top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply},
+        services::domain_audit::MockDomainAuditRepository,
         testing::TestEnvBuilder
     };
-    use std::collections::HashMap;
 
     const FROM_TIMESTAMP: u64 = 0;
     const UNTIL_TIMESTAMP: u64 = 177_180;
@@ -243,11 +252,21 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams::default();
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &MockDomainAuditRepository::new()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -270,14 +289,24 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams {
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &MockDomainAuditRepository::new()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -293,14 +322,24 @@ mod test {
             blocked_queries: Some(0)
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams {
             blocked: Some(true),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &MockDomainAuditRepository::new()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -324,15 +363,25 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(Config::default(), HashMap::new());
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams {
             ascending: Some(true),
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &MockDomainAuditRepository::new()
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -356,20 +405,30 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(PiholeFile::AuditLog, "1.ubuntu.pool.ntp.org")
-                .build()
-        );
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams {
             audit: Some(true),
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let mut domain_audit = MockDomainAuditRepository::new();
+        domain_audit
+            .expect_get_all()
+            .return_const(Ok(vec!["1.ubuntu.pool.ntp.org".to_owned()]));
+
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &domain_audit
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }
@@ -392,23 +451,31 @@ mod test {
             blocked_queries: None
         };
 
-        let db = connect_to_test_db();
-        let env = Env::Test(
-            Config::default(),
-            TestEnvBuilder::new()
-                .file(
-                    PiholeFile::SetupVars,
-                    "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
-                )
-                .build()
-        );
+        let db = connect_to_ftl_test_db();
+        let env = TestEnvBuilder::new()
+            .file(
+                PiholeFile::SetupVars,
+                "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
+            )
+            .file(PiholeFile::FtlConfig, "")
+            .build();
         let params = TopDomainParams {
             audit: Some(true),
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let actual =
-            top_domains_db_impl(&env, &db, FROM_TIMESTAMP, UNTIL_TIMESTAMP, params).unwrap();
+        let mut domain_audit = MockDomainAuditRepository::new();
+        domain_audit.expect_get_all().return_const(Ok(Vec::new()));
+
+        let actual = top_domains_db_impl(
+            &env,
+            &*db,
+            FROM_TIMESTAMP,
+            UNTIL_TIMESTAMP,
+            params,
+            &domain_audit
+        )
+        .unwrap();
 
         assert_eq!(actual, expected);
     }

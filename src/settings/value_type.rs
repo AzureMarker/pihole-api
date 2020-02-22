@@ -19,11 +19,12 @@ use std::{
 /// Categories of allowable values, shared across settings files
 #[cfg_attr(test, derive(Debug))]
 pub enum ValueType {
-    Boolean,
+    /// A value which matches at least one of the specified value types
+    Any(&'static [ValueType]),
     /// A comma separated array of strings which match at least one of the
     /// specified value types
     Array(&'static [ValueType]),
-    ConditionalForwardingReverse,
+    Boolean,
     Decimal,
     Domain,
     #[allow(dead_code)]
@@ -31,12 +32,16 @@ pub enum ValueType {
     Hostname,
     Integer,
     Interface,
-    Ipv4,
+    IPv4,
     IPv4OptionalPort,
-    Ipv4Mask,
-    Ipv6,
+    IPv4Mask,
+    IPv4CIDR,
+    IPv6,
+    IPv6OptionalPort,
+    IPv6CIDR,
     Path,
     PortNumber,
+    Regex,
     YesNo,
     WebPassword,
     String(&'static [&'static str]),
@@ -49,7 +54,10 @@ impl ValueType {
     /// Note: values are validated for format, not correctness.
     /// e.g. 0.1.2.3 is a valid IPV4, but may not be a valid upstream DNS
     pub fn is_valid(&self, value: &str) -> bool {
-        match *self {
+        match self {
+            ValueType::Any(value_types) => value_types
+                .iter()
+                .any(|value_type| value_type.is_valid(value)),
             ValueType::Array(value_types) => value.split(',').all(|value| {
                 value_types
                     .iter()
@@ -59,14 +67,6 @@ impl ValueType {
                 "true" | "false" => true,
                 _ => false
             },
-            ValueType::ConditionalForwardingReverse => {
-                // Specific reverse domain
-                let reverse_re = Regex::new(
-                    r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}([a-zA-Z0-9\-\.])+$"
-                )
-                .unwrap();
-                reverse_re.is_match(value)
-            }
             ValueType::Decimal => {
                 // Numeric, at least one leading digit, optional decimal point and trailing
                 // digits.
@@ -123,7 +123,7 @@ impl ValueType {
                     .iter()
                     .any(|interface| interface.name == value)
             }
-            ValueType::Ipv4 => {
+            ValueType::IPv4 => {
                 // Valid and in allowable range
                 // (4 octets)
                 // Test if valid address falls within permitted ranges
@@ -148,7 +148,7 @@ impl ValueType {
                     false
                 }
             }
-            ValueType::Ipv4Mask => {
+            ValueType::IPv4Mask => {
                 // Valid, in allowable range, and with mask
                 // (4 octets, with mask)
                 if !value.contains('/') {
@@ -158,14 +158,17 @@ impl ValueType {
                 let (ip, mask) = value.split_at(value.rfind('/').unwrap());
                 ValueType::Integer.is_valid(&mask.replace("/", "")) && is_ipv4_valid(ip)
             }
-            ValueType::Ipv6 => {
-                if let Ok(ipv6) = Ipv6Addr::from_str(value) {
-                    // Prohibited address ranges: Multicast & Unspecified
-                    // (all others permitted)
-                    !ipv6.is_multicast() && !ipv6.is_unspecified()
-                } else {
-                    false
-                }
+            ValueType::IPv4CIDR => ValueType::String(&["8", "16", "24", "32"]).is_valid(value),
+            ValueType::IPv6 => is_ipv6_valid(value),
+            ValueType::IPv6OptionalPort => get_ipv6_address_and_port(value).is_some(),
+            ValueType::IPv6CIDR => {
+                // The CIDR must be a positive number
+                let cidr: usize = match value.parse() {
+                    Ok(cidr) => cidr,
+                    Err(_) => return false
+                };
+
+                cidr > 0 && cidr <= 128 && cidr % 4 == 0
             }
             ValueType::Path => {
                 // Test if a path and filename have been specified
@@ -180,6 +183,7 @@ impl ValueType {
                     false
                 }
             }
+            ValueType::Regex => Regex::new(value).is_ok(),
             ValueType::YesNo => match value {
                 "yes" | "no" => true,
                 _ => false
@@ -213,9 +217,49 @@ fn is_ipv4_valid(value: &str) -> bool {
     }
 }
 
+/// IPv6 - Check that the specified address is valid
+fn is_ipv6_valid(value: &str) -> bool {
+    match Ipv6Addr::from_str(value) {
+        Ok(ipv6) => {
+            // Prohibited address ranges: Multicast & Unspecified
+            // (all others permitted)
+            !ipv6.is_multicast() && !ipv6.is_unspecified()
+        }
+        Err(_) => false
+    }
+}
+
+/// Get the address and port of an string representing an IPv6 address with or
+/// without a port.
+///
+/// If the address is invalid, None is returned.
+/// Otherwise, the returned tuple represents the address and optional port
+pub fn get_ipv6_address_and_port(value: &str) -> Option<(&str, Option<usize>)> {
+    // If this is a valid IPv6 address without a port, we can stop here
+    if is_ipv6_valid(value) {
+        return Some((value, None));
+    }
+
+    // Extract the address and port using Regex
+    let ipv6_re = Regex::new(r"^\[([a-fA-F0-9:]+)]:(\d+)$").unwrap();
+
+    // If the value does not match the regex, we return None via ?
+    let captures = ipv6_re.captures(value)?;
+
+    // Get the IPv6 address and port
+    let address = captures.get(1).map(|m| m.as_str())?;
+    let port: usize = captures[2].parse().ok()?;
+
+    if is_ipv6_valid(address) && port <= 65535 {
+        Some((address, Some(port)))
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{get_if_addrs, is_ipv4_valid, ValueType};
+    use super::{get_if_addrs, get_ipv6_address_and_port, is_ipv4_valid, ValueType};
 
     #[test]
     fn test_value_type_valid() {
@@ -226,46 +270,51 @@ mod tests {
             .unwrap_or_else(|| "lo".to_owned());
 
         let tests = vec![
-            (ValueType::Boolean, "false", true),
             (
-                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
-                "pi.hole,127.0.0.1",
-                true
+                ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
+                "1234"
             ),
             (
-                ValueType::ConditionalForwardingReverse,
-                "1.168.192.in-addr.arpa",
-                true
+                ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
+                "true"
             ),
-            (ValueType::Decimal, "3.14", true),
-            (ValueType::Domain, "domain.com", true),
-            (ValueType::Filename, "c3po", true),
-            (ValueType::Hostname, "localhost", true),
-            (ValueType::Integer, "8675309", true),
-            (ValueType::Interface, &available_interface, true),
-            (ValueType::Ipv4, "192.168.2.9", true),
-            (ValueType::IPv4OptionalPort, "192.168.4.5:80", true),
-            (ValueType::IPv4OptionalPort, "192.168.3.3", true),
-            (ValueType::Ipv4Mask, "192.168.0.3/24", true),
             (
-                ValueType::Ipv6,
-                "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c",
-                true
+                ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
+                "pi.hole,127.0.0.1"
             ),
-            (ValueType::Path, "/tmp/directory/file.ext", true),
-            (ValueType::PortNumber, "9000", true),
-            (ValueType::YesNo, "yes", true),
-            (ValueType::String(&["boxed", ""]), "boxed", true),
+            (ValueType::Boolean, "false"),
+            (ValueType::Decimal, "3.14"),
+            (ValueType::Domain, "domain.com"),
+            (ValueType::Filename, "c3po"),
+            (ValueType::Hostname, "localhost"),
+            (ValueType::Integer, "8675309"),
+            (ValueType::Interface, &available_interface),
+            (ValueType::IPv4, "192.168.2.9"),
+            (ValueType::IPv4OptionalPort, "192.168.4.5:80"),
+            (ValueType::IPv4OptionalPort, "192.168.3.3"),
+            (ValueType::IPv4Mask, "192.168.0.3/24"),
+            (ValueType::IPv4CIDR, "24"),
+            (ValueType::IPv6, "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
+            (
+                ValueType::IPv6OptionalPort,
+                "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"
+            ),
+            (ValueType::IPv6OptionalPort, "[1fff:0:a88:85a3::ac1f]:8001"),
+            (ValueType::IPv6CIDR, "64"),
+            (ValueType::Path, "/tmp/directory/file.ext"),
+            (ValueType::PortNumber, "9000"),
+            (ValueType::Regex, "^.*example$"),
+            (ValueType::YesNo, "yes"),
+            (ValueType::String(&["boxed", ""]), "boxed"),
         ];
 
-        for (setting, value, result) in tests {
+        for (setting, value) in tests {
+            let result = setting.is_valid(value);
+
             assert_eq!(
-                setting.is_valid(value),
-                result,
+                result, true,
                 "{:?}.is_valid({:?}) == {}",
-                setting,
-                value,
-                result
+                setting, value, result
             );
         }
     }
@@ -273,54 +322,62 @@ mod tests {
     #[test]
     fn test_value_type_invalid() {
         let tests = vec![
-            (ValueType::Boolean, "yes", false),
             (
-                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
-                "123, $test,",
-                false
+                ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
+                "3/4"
             ),
             (
-                ValueType::Array(&[ValueType::Hostname, ValueType::Ipv4]),
-                "123,",
-                false
+                ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
+                "192.168.1.1"
             ),
             (
-                ValueType::ConditionalForwardingReverse,
-                "www.pi-hole.net",
-                false
+                ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
+                "123, $test,"
             ),
-            (ValueType::Decimal, "3/4", false),
-            (ValueType::Decimal, "3.14.15.26", false),
-            (ValueType::Domain, "D0#A!N", false),
-            (ValueType::Filename, "c3p0/", false),
-            (ValueType::Hostname, ".localhost", false),
-            (ValueType::Hostname, "localhost.", false),
-            (ValueType::Hostname, "127.0.0.1", false),
-            (ValueType::Hostname, "my.ho$t.name", false),
-            (ValueType::Integer, "9.9", false),
-            (ValueType::Integer, "10m3", false),
-            (ValueType::Interface, "/dev/net/ev9d9", false),
-            (ValueType::Ipv4, "192.168.0.3/24", false),
-            (ValueType::Ipv4, "192.168.0.2:53", false),
-            (ValueType::IPv4OptionalPort, "192.168.4.5 port 1000", false),
-            (ValueType::IPv4OptionalPort, "192.168.6.8:arst", false),
-            (ValueType::Ipv4Mask, "192.168.2.9", false),
-            (ValueType::Ipv4Mask, "192.168.1.1/qwfp", false),
-            (ValueType::Ipv6, "192.168.0.3", false),
-            (ValueType::Path, "~/tmp/directory/file.ext", false),
-            (ValueType::PortNumber, "65536", false),
-            (ValueType::YesNo, "true", false),
-            (ValueType::String(&["boxed", ""]), "lan", false),
+            (
+                ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
+                "123,"
+            ),
+            (ValueType::Boolean, "yes"),
+            (ValueType::Decimal, "3/4"),
+            (ValueType::Decimal, "3.14.15.26"),
+            (ValueType::Domain, "D0#A!N"),
+            (ValueType::Filename, "c3p0/"),
+            (ValueType::Hostname, ".localhost"),
+            (ValueType::Hostname, "localhost."),
+            (ValueType::Hostname, "127.0.0.1"),
+            (ValueType::Hostname, "my.ho$t.name"),
+            (ValueType::Integer, "9.9"),
+            (ValueType::Integer, "10m3"),
+            (ValueType::Interface, "/dev/net/ev9d9"),
+            (ValueType::IPv4, "192.168.0.3/24"),
+            (ValueType::IPv4, "192.168.0.2:53"),
+            (ValueType::IPv4OptionalPort, "192.168.4.5 port 1000"),
+            (ValueType::IPv4OptionalPort, "192.168.6.8:arst"),
+            (ValueType::IPv4Mask, "192.168.2.9"),
+            (ValueType::IPv4Mask, "192.168.1.1/qwfp"),
+            (ValueType::IPv4CIDR, "-1"),
+            (ValueType::IPv4CIDR, "124"),
+            (ValueType::IPv6, "192.168.0.3"),
+            (ValueType::IPv6OptionalPort, "192.168.0.3"),
+            (ValueType::IPv6OptionalPort, "1fff:0:a88:85a3::ac1f#8001"),
+            (ValueType::IPv6CIDR, "-1"),
+            (ValueType::IPv6CIDR, "23"),
+            (ValueType::IPv6CIDR, "150"),
+            (ValueType::Path, "~/tmp/directory/file.ext"),
+            (ValueType::PortNumber, "65536"),
+            (ValueType::Regex, "example\\"),
+            (ValueType::YesNo, "true"),
+            (ValueType::String(&["boxed", ""]), "lan"),
         ];
 
-        for (setting, value, result) in tests {
+        for (setting, value) in tests {
+            let result = setting.is_valid(value);
+
             assert_eq!(
-                setting.is_valid(value),
-                result,
+                result, false,
                 "{:?}.is_valid({:?}) == {}",
-                setting,
-                value,
-                result
+                setting, value, result
             );
         }
     }
@@ -341,5 +398,25 @@ mod tests {
         for (value, result) in tests {
             assert_eq!(is_ipv4_valid(value), result);
         }
+    }
+
+    /// `get_ipv6_address_and_port` returns a tuple without a port when given
+    /// an IPv6 address with no port
+    #[test]
+    fn get_ipv6_info_no_port() {
+        assert_eq!(
+            get_ipv6_address_and_port("f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
+            Some(("f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c", None))
+        );
+    }
+
+    /// `get_ipv6_address_and_port` returns a tuple with a port when given an
+    /// IPv6 address with a port
+    #[test]
+    fn get_ipv6_info_with_port() {
+        assert_eq!(
+            get_ipv6_address_and_port("[1fff:0:a88:85a3::ac1f]:8001"),
+            Some(("1fff:0:a88:85a3::ac1f", Some(8001)))
+        );
     }
 }

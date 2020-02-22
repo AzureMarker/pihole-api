@@ -9,7 +9,7 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::ftl::{queries, FtlDbQuery},
+    databases::ftl::{queries, FtlDatabase, FtlDbQuery},
     env::Env,
     routes::stats::history::{
         endpoints::{HistoryCursor, HistoryParams},
@@ -31,7 +31,7 @@ use failure::ResultExt;
 /// - `params`: Parameters given to the history endpoint (filters)
 /// - `limit`: The maximum number of queries to load
 pub fn load_queries_from_database(
-    db: &SqliteConnection,
+    db: &FtlDatabase,
     start_id: Option<i64>,
     params: &HistoryParams,
     env: &Env,
@@ -73,7 +73,7 @@ pub fn load_queries_from_database(
     let cursor = if results.len() == limit + 1 {
         Some(HistoryCursor {
             id: None,
-            db_id: Some(results[limit].id.unwrap() as i64)
+            db_id: Some(results[limit].id as i64)
         })
     } else {
         None
@@ -89,11 +89,11 @@ pub fn load_queries_from_database(
 /// Execute a database query for DNS queries on an FTL database.
 /// The database could be real, or it could be a test database.
 pub fn execute_query(
-    db: &SqliteConnection,
+    db: &FtlDatabase,
     db_query: queries::BoxedQuery<Sqlite>
 ) -> Result<Vec<FtlDbQuery>, Error> {
     db_query
-        .load(db)
+        .load(db as &SqliteConnection)
         .context(ErrorKind::FtlDatabase)
         .map_err(Error::from)
 }
@@ -102,19 +102,21 @@ pub fn execute_query(
 mod test {
     use super::load_queries_from_database;
     use crate::{
-        databases::ftl::connect_to_test_db,
-        env::{Config, Env},
-        routes::stats::history::endpoints::{HistoryCursor, HistoryParams}
+        databases::ftl::connect_to_ftl_test_db,
+        env::PiholeFile,
+        routes::stats::history::endpoints::{HistoryCursor, HistoryParams},
+        testing::TestEnvBuilder
     };
-    use std::collections::HashMap;
 
     /// Queries are ordered by id, descending
     #[test]
     fn order_by_id() {
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
 
         let (queries, cursor) = load_queries_from_database(
-            &connect_to_test_db(),
+            &connect_to_ftl_test_db(),
             Some(2),
             &HistoryParams::default(),
             &env,
@@ -130,14 +132,16 @@ mod test {
     /// The max number of queries returned is specified by the limit
     #[test]
     fn limit() {
-        let env = Env::Test(Config::default(), HashMap::new());
+        let env = TestEnvBuilder::new()
+            .file(PiholeFile::SetupVars, "")
+            .build();
         let expected_cursor = Some(HistoryCursor {
             id: None,
             db_id: Some(1)
         });
 
         let (queries, cursor) = load_queries_from_database(
-            &connect_to_test_db(),
+            &connect_to_ftl_test_db(),
             Some(3),
             &HistoryParams::default(),
             &env,

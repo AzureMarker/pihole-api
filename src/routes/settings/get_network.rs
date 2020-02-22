@@ -11,15 +11,16 @@
 use crate::{
     env::Env,
     routes::auth::User,
+    services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
     util::{reply_data, Reply}
 };
 use hostname::get_hostname;
-use rocket::State;
+use shaku_rocket::Inject;
 
 /// Get Pi-hole local network information
 #[get("/settings/network")]
-pub fn get_network(env: State<Env>, _auth: User) -> Reply {
+pub fn get_network(env: Inject<PiholeModule, Env>, _auth: User) -> Reply {
     let ipv4_full = SetupVarsEntry::Ipv4Address.read(&env)?;
     let ipv4_address: Vec<&str> = ipv4_full.split('/').collect();
     let ipv6_full = SetupVarsEntry::Ipv6Address.read(&env)?;

@@ -9,29 +9,32 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::{ftl::FtlDatabase, load_databases},
+    databases::{
+        custom_connection::CustomSqliteConnection,
+        ftl::{FtlDatabasePool, FtlDatabasePoolParameters},
+        gravity::{GravityDatabasePool, GravityDatabasePoolParameters},
+        load_ftl_db_config, load_gravity_db_config
+    },
     env::{Config, Env},
-    ftl::{FtlConnectionType, FtlMemory},
+    ftl::FtlMemory,
     routes::{
         auth::{self, AuthData},
         dns, settings, stats, version, web
     },
+    services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
     util::{Error, ErrorKind}
 };
-use rocket::config::{ConfigBuilder, Environment};
-use rocket_cors::Cors;
+use failure::ResultExt;
+use rocket::{
+    config::{ConfigBuilder, Environment},
+    Rocket
+};
+use rocket_cors::CorsOptions;
+use shaku::ContainerBuilder;
 
 #[cfg(test)]
-use crate::{databases::load_test_databases, env::PiholeFile};
-#[cfg(test)]
-use rocket::{config::LoggingLevel, local::Client};
-#[cfg(test)]
-use std::collections::HashMap;
-#[cfg(test)]
-use tempfile::NamedTempFile;
-
-const CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
+use rocket::config::LoggingLevel;
 
 #[catch(404)]
 fn not_found() -> Error {
@@ -45,25 +48,37 @@ fn unauthorized() -> Error {
 
 /// Run the API normally (connect to FTL over the socket)
 pub fn start() -> Result<(), Error> {
-    let config = Config::parse(CONFIG_LOCATION)?;
+    let config = Config::load()?;
     let env = Env::Production(config);
     let key = SetupVarsEntry::WebPassword.read(&env)?;
+
+    println!("{:#?}", env.config());
+
+    let mut container_builder = ContainerBuilder::new();
+    container_builder
+        .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
+            pool: CustomSqliteConnection::pool(load_gravity_db_config(&env)?)
+                .context(ErrorKind::GravityDatabase)?
+        })
+        .with_component_parameters::<FtlDatabasePool>(FtlDatabasePoolParameters {
+            pool: CustomSqliteConnection::pool(load_ftl_db_config(&env)?)
+                .context(ErrorKind::FtlDatabase)?
+        })
+        .with_component_parameters::<Env>(env.config().clone());
 
     setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Production)
-                .address(env.config().address())
-                .port(env.config().port() as u16)
-                .log_level(env.config().log_level()?)
-                .extra("databases", load_databases(&env)?)
+                .address(env.config().general.address.as_str())
+                .port(env.config().general.port as u16)
+                .log_level(env.config().general.log_level)
                 .finalize()
                 .unwrap()
         ),
-        FtlConnectionType::Socket,
         FtlMemory::production(),
-        env,
-        key,
-        true
+        env.config(),
+        if key.is_empty() { None } else { Some(key) },
+        container_builder
     )
     .launch();
 
@@ -73,54 +88,71 @@ pub fn start() -> Result<(), Error> {
 /// Setup the API with the testing data and return a Client to test with
 #[cfg(test)]
 pub fn test(
-    ftl_data: HashMap<String, Vec<u8>>,
     ftl_memory: FtlMemory,
-    env_data: HashMap<PiholeFile, NamedTempFile>,
-    needs_database: bool
-) -> Client {
-    use toml;
-
-    Client::new(setup(
+    config: &Config,
+    api_key: Option<String>,
+    container_builder: ContainerBuilder<PiholeModule>
+) -> Rocket {
+    setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
                 .log_level(LoggingLevel::Debug)
-                .extra("databases", load_test_databases())
                 .finalize()
                 .unwrap()
         ),
-        FtlConnectionType::Test(ftl_data),
         ftl_memory,
-        Env::Test(toml::from_str("").unwrap(), env_data),
-        "test_key".to_owned(),
-        needs_database
-    ))
-    .unwrap()
+        &config,
+        api_key,
+        container_builder
+    )
 }
 
 /// General server setup
 fn setup(
-    server: rocket::Rocket,
-    ftl_socket: FtlConnectionType,
+    server: Rocket,
     ftl_memory: FtlMemory,
-    env: Env,
-    api_key: String,
-    needs_database: bool
-) -> rocket::Rocket {
+    config: &Config,
+    api_key: Option<String>,
+    mut container_builder: ContainerBuilder<PiholeModule>
+) -> Rocket {
     // Set up CORS
-    let cors = Cors {
+    let cors = CorsOptions {
         allow_credentials: true,
-        ..Cors::default()
-    };
+        ..CorsOptions::default()
+    }
+    .to_cors()
+    .unwrap();
 
-    // Attach the databases if required
-    let server = if needs_database {
-        server.attach(FtlDatabase::fairing())
+    // Conditionally enable and mount the web interface
+    let server = if config.web.enabled {
+        let web_route = config.web.path.to_string_lossy();
+
+        // Check if the root redirect should be enabled
+        let server = if config.web.root_redirect && web_route != "/" {
+            server.mount("/", routes![web::web_interface_redirect])
+        } else {
+            server
+        };
+
+        // Mount the web interface at the configured route
+        server.mount(
+            &web_route,
+            routes![web::web_interface_index, web::web_interface]
+        )
     } else {
         server
     };
 
+    // The path to mount the API on (always <web_root>/api)
+    let mut api_mount_path = config.web.path.clone();
+    api_mount_path.push("api");
+    let api_mount_path_str = api_mount_path.to_string_lossy();
+
     // Create a scheduler for scheduling work (ex. disable for 10 minutes)
     let scheduler = task_scheduler::Scheduler::new();
+
+    // Build the dependency injection container
+    let container = container_builder.build();
 
     // Set up the server
     server
@@ -128,24 +160,16 @@ fn setup(
         .attach(cors)
         // Add custom error handlers
         .register(catchers![not_found, unauthorized])
-        // Manage the FTL socket configuration
-        .manage(ftl_socket)
         // Manage the FTL shared memory configuration
         .manage(ftl_memory)
-        // Manage the environment
-        .manage(env)
         // Manage the API key
         .manage(AuthData::new(api_key))
         // Manage the scheduler
         .manage(scheduler)
-        // Mount the web interface
-        .mount("/", routes![
-            web::web_interface_redirect,
-            web::web_interface_index,
-            web::web_interface
-        ])
+        // Manage the dependency injection container
+        .manage(container)
         // Mount the API
-        .mount("/admin/api", routes![
+        .mount(&api_mount_path_str, routes![
             version::version,
             auth::check,
             auth::logout,
