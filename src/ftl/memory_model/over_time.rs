@@ -8,8 +8,6 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use libc;
-
 #[cfg(test)]
 use crate::ftl::memory_model::MAGIC_BYTE;
 

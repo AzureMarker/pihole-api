@@ -12,10 +12,12 @@ use crate::{
     databases::ftl::FtlDatabase,
     ftl::BLOCKED_STATUSES,
     routes::{auth::User, stats::over_time_history::OverTimeItem},
+    services::PiholeModule,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
+use shaku_rocket::InjectProvided;
 use std::collections::HashMap;
 
 /// Get the query history over time from the database
@@ -26,7 +28,7 @@ pub fn over_time_history_db(
     until: u64,
     interval: Option<usize>,
     _auth: User,
-    db: FtlDatabase
+    db: InjectProvided<PiholeModule, FtlDatabase>
 ) -> Reply {
     reply_result(over_time_history_db_impl(
         from,

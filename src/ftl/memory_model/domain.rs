@@ -9,7 +9,6 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::ftl::FtlStrings;
-use libc;
 
 #[cfg(test)]
 use crate::ftl::memory_model::MAGIC_BYTE;

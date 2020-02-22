@@ -19,6 +19,7 @@ use std::{
     os::unix::net::UnixStream
 };
 
+use shaku::{Component, ContainerBuildContext, Module};
 #[cfg(test)]
 use std::collections::HashMap;
 #[cfg(test)]
@@ -40,6 +41,15 @@ pub enum FtlConnectionType {
     Socket,
     #[cfg(test)]
     Test(HashMap<String, Vec<u8>>)
+}
+
+impl<M: Module> Component<M> for FtlConnectionType {
+    type Interface = Self;
+    type Parameters = ();
+
+    fn build(_: &mut ContainerBuildContext<M>, _: Self::Parameters) -> Box<Self::Interface> {
+        Box::new(FtlConnectionType::Socket)
+    }
 }
 
 impl FtlConnectionType {

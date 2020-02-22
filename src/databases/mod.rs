@@ -9,10 +9,10 @@
 // Please see LICENSE file for your rights under this license.
 
 mod common;
-mod custom_connection;
+pub mod custom_connection;
 pub mod ftl;
 pub mod gravity;
 
-pub use self::common::load_databases;
 #[cfg(test)]
-pub use self::common::{create_memory_db, load_test_databases};
+pub use self::common::{create_memory_db, FakeDatabaseService};
+pub use self::common::{load_ftl_db_config, load_gravity_db_config, DatabaseService};

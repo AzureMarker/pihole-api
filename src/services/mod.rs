@@ -8,10 +8,35 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-#[macro_use]
-mod service;
-
 pub mod domain_audit;
 pub mod lists;
 
-pub use self::service::*;
+use crate::{
+    databases::{
+        ftl::{FtlDatabase, FtlDatabasePool},
+        gravity::{GravityDatabase, GravityDatabasePool}
+    },
+    env::Env,
+    ftl::FtlConnectionType
+};
+use domain_audit::DomainAuditRepositoryImpl;
+use lists::{ListRepositoryImpl, ListServiceImpl};
+use shaku::module;
+
+module! {
+    pub PiholeModule {
+        components = [
+            Env,
+            FtlConnectionType,
+            GravityDatabasePool,
+            FtlDatabasePool
+        ],
+        providers = [
+            ListRepositoryImpl,
+            ListServiceImpl,
+            DomainAuditRepositoryImpl,
+            GravityDatabase,
+            FtlDatabase
+        ]
+    }
+}

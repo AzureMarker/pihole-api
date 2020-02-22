@@ -9,13 +9,66 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::custom_connection::CustomSqliteConnection,
+    databases::{
+        custom_connection::{
+            CustomDBConfig, CustomSqliteConnection, CustomSqliteConnectionManager
+        },
+        DatabaseService
+    },
     ftl::{FtlDnssecType, FtlQueryReplyType},
-    routes::stats::QueryReply
+    routes::stats::QueryReply,
+    settings::{ConfigEntry, FtlConfEntry}
 };
+use diesel::SqliteConnection;
+use rocket_contrib::databases::r2d2::{Pool, PooledConnection};
+use shaku::{Component, Container, HasComponent, Module, Provider};
+use std::ops::Deref;
 
-#[database("ftl_database")]
-pub struct FtlDatabase(CustomSqliteConnection);
+fn default_connection() -> Pool<CustomSqliteConnectionManager> {
+    let config = CustomDBConfig {
+        url: FtlConfEntry::DbFile.get_default().to_owned(),
+        pool_size: 8,
+        test_schema: None
+    };
+
+    CustomSqliteConnection::pool(config).unwrap()
+}
+
+#[derive(Component)]
+#[shaku(interface = DatabaseService<FtlDatabase>)]
+pub struct FtlDatabasePool {
+    #[shaku(default = default_connection())]
+    pool: Pool<CustomSqliteConnectionManager>
+}
+
+impl DatabaseService<FtlDatabase> for FtlDatabasePool {
+    fn get_connection(&self) -> Result<FtlDatabase, shaku::Error> {
+        self.pool
+            .get()
+            .map(FtlDatabase)
+            .map_err(|e| shaku::Error::ResolveError(e.to_string()))
+    }
+}
+
+pub struct FtlDatabase(pub PooledConnection<CustomSqliteConnectionManager>);
+
+impl Deref for FtlDatabase {
+    type Target = SqliteConnection;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<M: Module + HasComponent<dyn DatabaseService<FtlDatabase>>> Provider<M> for FtlDatabase {
+    type Interface = Self;
+
+    fn provide(container: &Container<M>) -> Result<Box<Self::Interface>, shaku::Error> {
+        let pool: &dyn DatabaseService<FtlDatabase> = container.resolve_ref();
+
+        Ok(Box::new(pool.get_connection()?))
+    }
+}
 
 #[allow(dead_code)]
 pub enum FtlTableEntry {

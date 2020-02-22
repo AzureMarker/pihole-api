@@ -10,27 +10,43 @@
 
 use crate::{
     routes::auth::User,
-    services::lists::{List, ListServiceGuard},
+    services::{
+        lists::{List, ListService},
+        PiholeModule
+    },
     util::{reply_success, Reply}
 };
+use shaku_rocket::InjectProvided;
 
 /// Delete a domain from the whitelist
 #[delete("/dns/whitelist/<domain>")]
-pub fn delete_whitelist(_auth: User, list_service: ListServiceGuard, domain: String) -> Reply {
+pub fn delete_whitelist(
+    _auth: User,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
+    domain: String
+) -> Reply {
     list_service.remove(List::White, &domain)?;
     reply_success()
 }
 
 /// Delete a domain from the blacklist
 #[delete("/dns/blacklist/<domain>")]
-pub fn delete_blacklist(_auth: User, list_service: ListServiceGuard, domain: String) -> Reply {
+pub fn delete_blacklist(
+    _auth: User,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
+    domain: String
+) -> Reply {
     list_service.remove(List::Black, &domain)?;
     reply_success()
 }
 
 /// Delete a domain from the regex list
 #[delete("/dns/regexlist/<domain>")]
-pub fn delete_regexlist(_auth: User, list_service: ListServiceGuard, domain: String) -> Reply {
+pub fn delete_regexlist(
+    _auth: User,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
+    domain: String
+) -> Reply {
     list_service.remove(List::Regex, &domain)?;
     reply_success()
 }
@@ -38,31 +54,29 @@ pub fn delete_regexlist(_auth: User, list_service: ListServiceGuard, domain: Str
 #[cfg(test)]
 mod test {
     use crate::{
-        services::lists::{List, ListServiceMock},
+        services::lists::{List, ListService, MockListService},
         testing::TestBuilder
     };
-    use mock_it::verify;
+    use mockall::predicate::*;
     use rocket::http::Method;
 
     /// Test that a successful delete returns success
-    fn delete_test(list: List, endpoint: &str, domain: &str) {
-        let service = ListServiceMock::default();
-
-        service
-            .remove
-            .given((list, domain.to_owned()))
-            .will_return(Ok(()));
-
+    fn delete_test(list: List, endpoint: &str, domain: &'static str) {
         TestBuilder::new()
             .endpoint(endpoint)
             .method(Method::Delete)
-            .mock_service(service.clone())
+            .mock_provider::<dyn ListService>(Box::new(move |_| {
+                let mut service = MockListService::new();
+
+                service
+                    .expect_remove()
+                    .with(eq(list), eq(domain))
+                    .return_const(Ok(()));
+
+                Ok(Box::new(service))
+            }))
             .expect_json(json!({ "status": "success" }))
             .test();
-
-        assert!(verify(
-            service.remove.was_called_with((list, domain.to_owned()))
-        ));
     }
 
     #[test]

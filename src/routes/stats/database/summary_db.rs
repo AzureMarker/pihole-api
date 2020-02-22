@@ -19,12 +19,13 @@ use crate::{
             summary::{ReplyTypes, Summary, TotalQueries}
         }
     },
+    services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::prelude::*;
 use failure::ResultExt;
-use rocket::State;
+use shaku_rocket::{Inject, InjectProvided};
 
 /// Get summary data from database
 #[get("/stats/database/summary?<from>&<until>")]
@@ -32,8 +33,8 @@ pub fn get_summary_db(
     from: u64,
     until: u64,
     _auth: User,
-    db: FtlDatabase,
-    env: State<Env>
+    db: InjectProvided<PiholeModule, FtlDatabase>,
+    env: Inject<PiholeModule, Env>
 ) -> Reply {
     reply_result(get_summary_impl(
         from,

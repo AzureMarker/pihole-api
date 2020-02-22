@@ -13,8 +13,6 @@ use diesel::{
     r2d2::{self, ConnectionManager, CustomizeConnection, Pool},
     Connection, ConnectionError, SqliteConnection
 };
-use rocket::config::Value;
-use rocket_contrib::databases::{DatabaseConfig, Poolable};
 use std::{
     ops::{Deref, DerefMut},
     path::Path
@@ -40,20 +38,35 @@ impl DerefMut for CustomSqliteConnection {
     }
 }
 
-impl Poolable for CustomSqliteConnection {
-    type Manager = CustomSqliteConnectionManager;
-    type Error = rocket_contrib::databases::r2d2::Error;
+pub struct CustomDBConfig {
+    pub url: String,
+    pub pool_size: u32,
+    pub test_schema: Option<String>
+}
 
-    fn pool(config: DatabaseConfig) -> Result<Pool<Self::Manager>, Self::Error> {
+impl Default for CustomDBConfig {
+    fn default() -> Self {
+        CustomDBConfig {
+            url: "".to_string(),
+            pool_size: 8,
+            test_schema: None
+        }
+    }
+}
+
+impl CustomSqliteConnection {
+    pub fn pool(
+        config: CustomDBConfig
+    ) -> Result<Pool<CustomSqliteConnectionManager>, rocket_contrib::databases::r2d2::Error> {
         let manager = CustomSqliteConnectionManager {
-            manager: ConnectionManager::new(config.url),
-            database_url: config.url.to_owned()
+            manager: ConnectionManager::new(&config.url),
+            database_url: config.url
         };
         let mut builder = Pool::builder().max_size(config.pool_size);
 
         // When testing, run the schema SQL to build the database
         if cfg!(test) {
-            if let Some(Value::String(schema)) = config.extras.get("test_schema").cloned() {
+            if let Some(schema) = config.test_schema {
                 builder = builder.connection_customizer(Box::new(DatabaseSchemaApplier { schema }));
             }
         }
@@ -65,7 +78,7 @@ impl Poolable for CustomSqliteConnection {
 /// A custom SQLite connection manager which automatically adds a busy timeout
 /// and fails if the database does not exist
 pub struct CustomSqliteConnectionManager {
-    pub manager: ConnectionManager<SqliteConnection>,
+    manager: ConnectionManager<SqliteConnection>,
     database_url: String
 }
 

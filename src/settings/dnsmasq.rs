@@ -160,6 +160,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
         "local" => config_file
             .write_all(b"local-service\n")
             .context(ErrorKind::DnsmasqConfigWrite)?,
+        #[allow(clippy::wildcard_in_or_patterns)]
         "single" | _ => {
             writeln!(
                 config_file,

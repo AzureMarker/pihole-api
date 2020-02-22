@@ -14,17 +14,11 @@ use crate::{
 };
 use diesel::{expression::exists::exists, insert_into, prelude::*, select};
 use failure::ResultExt;
-use rocket::{
-    request::{self, FromRequest},
-    Outcome, Request
-};
-use std::marker::PhantomData;
-
-#[cfg(test)]
-use mock_it::Mock;
+use shaku::{ProvidedInterface, Provider};
 
 /// Describes interactions with the domain audit data store
-pub trait DomainAuditRepository {
+#[cfg_attr(test, mockall::automock)]
+pub trait DomainAuditRepository: ProvidedInterface {
     /// Check if the domain is contained in the audit table
     fn contains(&self, domain: &str) -> Result<bool, Error>;
 
@@ -35,38 +29,15 @@ pub trait DomainAuditRepository {
     fn add(&self, domain: &str) -> Result<(), Error>;
 }
 
-service!(
-    DomainAuditRepositoryGuard,
-    DomainAuditRepository,
-    DomainAuditRepositoryImpl,
-    DomainAuditRepositoryMock
-);
-
 /// The implementation of `DomainAuditRepository`
-pub struct DomainAuditRepositoryImpl<'r> {
-    db: GravityDatabase,
-    phantom: PhantomData<&'r ()>
+#[derive(Provider)]
+#[shaku(interface = DomainAuditRepository)]
+pub struct DomainAuditRepositoryImpl {
+    #[shaku(provide)]
+    db: Box<GravityDatabase>
 }
 
-impl<'r> DomainAuditRepositoryImpl<'r> {
-    fn new(db: GravityDatabase) -> Self {
-        DomainAuditRepositoryImpl {
-            db,
-            phantom: PhantomData
-        }
-    }
-}
-
-impl<'a, 'r> FromRequest<'a, 'r> for DomainAuditRepositoryImpl<'r> {
-    type Error = ();
-
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
-        let db = request.guard::<GravityDatabase>()?;
-        Outcome::Success(DomainAuditRepositoryImpl::new(db))
-    }
-}
-
-impl<'r> DomainAuditRepository for DomainAuditRepositoryImpl<'r> {
+impl DomainAuditRepository for DomainAuditRepositoryImpl {
     fn contains(&self, input_domain: &str) -> Result<bool, Error> {
         use crate::databases::gravity::domain_audit::dsl::*;
         let db = &self.db as &SqliteConnection;
@@ -102,39 +73,6 @@ impl<'r> DomainAuditRepository for DomainAuditRepositoryImpl<'r> {
 }
 
 #[cfg(test)]
-pub struct DomainAuditRepositoryMock {
-    pub contains: Mock<String, Result<bool, Error>>,
-    pub get_all: Mock<(), Result<Vec<String>, Error>>,
-    pub add: Mock<String, Result<(), Error>>
-}
-
-#[cfg(test)]
-impl Default for DomainAuditRepositoryMock {
-    fn default() -> Self {
-        DomainAuditRepositoryMock {
-            contains: Mock::new(Ok(false)),
-            get_all: Mock::new(Ok(Vec::new())),
-            add: Mock::new(Ok(()))
-        }
-    }
-}
-
-#[cfg(test)]
-impl DomainAuditRepository for DomainAuditRepositoryMock {
-    fn contains(&self, domain: &str) -> Result<bool, Error> {
-        self.contains.called(domain.to_owned())
-    }
-
-    fn get_all(&self) -> Result<Vec<String>, Error> {
-        self.get_all.called(())
-    }
-
-    fn add(&self, domain: &str) -> Result<(), Error> {
-        self.add.called(domain.to_owned())
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use crate::{
         databases::gravity::connect_to_gravity_test_db,
@@ -145,7 +83,7 @@ mod tests {
     #[test]
     fn contains_true() {
         let db = connect_to_gravity_test_db();
-        let repo = DomainAuditRepositoryImpl::new(db);
+        let repo = DomainAuditRepositoryImpl { db };
 
         assert_eq!(repo.contains("audited.domain").unwrap(), true);
     }
@@ -154,7 +92,7 @@ mod tests {
     #[test]
     fn contains_false() {
         let db = connect_to_gravity_test_db();
-        let repo = DomainAuditRepositoryImpl::new(db);
+        let repo = DomainAuditRepositoryImpl { db };
 
         assert_eq!(repo.contains("not.audited.domain").unwrap(), false);
     }
@@ -163,7 +101,7 @@ mod tests {
     #[test]
     fn get_all() {
         let db = connect_to_gravity_test_db();
-        let repo = DomainAuditRepositoryImpl::new(db);
+        let repo = DomainAuditRepositoryImpl { db };
 
         assert_eq!(repo.get_all().unwrap(), vec!["audited.domain".to_owned()]);
     }
@@ -172,7 +110,7 @@ mod tests {
     #[test]
     fn add_success() {
         let db = connect_to_gravity_test_db();
-        let repo = DomainAuditRepositoryImpl::new(db);
+        let repo = DomainAuditRepositoryImpl { db };
 
         repo.add("new.audited.domain").unwrap();
 

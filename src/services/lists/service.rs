@@ -11,25 +11,20 @@
 use crate::{
     env::Env,
     ftl::FtlConnectionType,
-    services::lists::{List, ListRepository, ListRepositoryGuard},
+    services::lists::{List, ListRepository},
     util::{Error, ErrorKind}
 };
 use failure::ResultExt;
-use rocket::{
-    request::{self, FromRequest},
-    Outcome, Request, State
-};
+use shaku::{ProvidedInterface, Provider};
 use std::{
-    ops::Deref,
-    process::{Command, Stdio}
+    process::{Command, Stdio},
+    sync::Arc
 };
-
-#[cfg(test)]
-use mock_it::Mock;
 
 /// Describes interactions with the Pi-hole domain lists (whitelist, blacklist,
 /// and regexlist)
-pub trait ListService {
+#[cfg_attr(test, mockall::automock)]
+pub trait ListService: ProvidedInterface {
     /// Add a domain to the list and update FTL and other lists accordingly.
     /// Example: when adding to the whitelist, remove from the blacklist.
     fn add(&self, list: List, domain: &str) -> Result<(), Error>;
@@ -41,33 +36,19 @@ pub trait ListService {
     fn get(&self, list: List) -> Result<Vec<String>, Error>;
 }
 
-service!(
-    ListServiceGuard,
-    ListService,
-    ListServiceImpl,
-    ListServiceMock
-);
-
 /// The implementation of `ListService`
-pub struct ListServiceImpl<'r> {
-    repo: Box<dyn Deref<Target = ListRepository + 'r> + 'r>,
-    env: &'r Env,
-    ftl: &'r FtlConnectionType
+#[derive(Provider)]
+#[shaku(interface = ListService)]
+pub struct ListServiceImpl {
+    #[shaku(provide)]
+    repo: Box<dyn ListRepository>,
+    #[shaku(inject)]
+    env: Arc<Env>,
+    #[shaku(inject)]
+    ftl: Arc<FtlConnectionType>
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for ListServiceImpl<'r> {
-    type Error = ();
-
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        let repo = Box::new(request.guard::<ListRepositoryGuard<'r>>()?);
-        let env = request.guard::<State<Env>>()?.inner();
-        let ftl = request.guard::<State<FtlConnectionType>>()?.inner();
-
-        Outcome::Success(ListServiceImpl { repo, env, ftl })
-    }
-}
-
-impl<'r> ListService for ListServiceImpl<'r> {
+impl ListService for ListServiceImpl {
     fn add(&self, list: List, domain: &str) -> Result<(), Error> {
         match list {
             List::White => {
@@ -121,7 +102,7 @@ impl<'r> ListService for ListServiceImpl<'r> {
     }
 }
 
-impl<'r> ListServiceImpl<'r> {
+impl ListServiceImpl {
     /// Simply add a domain to the list
     fn add_raw(&self, list: List, domain: &str) -> Result<(), Error> {
         // Check if it's a valid domain before doing anything
@@ -170,40 +151,6 @@ impl<'r> ListServiceImpl<'r> {
     }
 }
 
-#[cfg(test)]
-#[derive(Clone)]
-pub struct ListServiceMock {
-    pub add: Mock<(List, String), Result<(), Error>>,
-    pub remove: Mock<(List, String), Result<(), Error>>,
-    pub get: Mock<List, Result<Vec<String>, Error>>
-}
-
-#[cfg(test)]
-impl Default for ListServiceMock {
-    fn default() -> Self {
-        ListServiceMock {
-            add: Mock::new(Ok(())),
-            remove: Mock::new(Ok(())),
-            get: Mock::new(Ok(Vec::new()))
-        }
-    }
-}
-
-#[cfg(test)]
-impl ListService for ListServiceMock {
-    fn add(&self, list: List, domain: &str) -> Result<(), Error> {
-        self.add.called((list, domain.to_owned()))
-    }
-
-    fn remove(&self, list: List, domain: &str) -> Result<(), Error> {
-        self.remove.called((list, domain.to_owned()))
-    }
-
-    fn get(&self, list: List) -> Result<Vec<String>, Error> {
-        self.get.called(list)
-    }
-}
-
 /// Reload Gravity to activate changes in lists
 pub fn reload_gravity(list: List, env: &Env) -> Result<(), Error> {
     // Don't actually reload Gravity during testing
@@ -241,11 +188,11 @@ mod test {
     use super::List;
     use crate::{
         ftl::FtlConnectionType,
-        services::lists::{ListRepositoryMock, ListService, ListServiceImpl},
+        services::lists::{ListService, ListServiceImpl, MockListRepository},
         testing::{write_eom, TestEnvBuilder}
     };
-    use mock_it::verify;
-    use std::collections::HashMap;
+    use mockall::predicate::*;
+    use std::{collections::HashMap, sync::Arc};
 
     fn get_ftl() -> FtlConnectionType {
         let mut data = Vec::new();
@@ -261,46 +208,41 @@ mod test {
     fn get_test(list: List, domain: &str) {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::default();
+        let mut repo = MockListRepository::new();
 
-        repo.get
-            .given(list)
-            .will_return(Ok(vec![domain.to_owned()]));
+        repo.expect_get()
+            .with(eq(list))
+            .return_const(Ok(vec![domain.to_owned()]));
 
         let service = ListServiceImpl {
-            repo: Box::new(repo.clone()),
-            env: &env,
-            ftl: &ftl
+            repo: Box::new(repo),
+            env: Arc::new(env),
+            ftl: Arc::new(ftl)
         };
 
         assert_eq!(service.get(list).unwrap(), vec![domain.to_owned()]);
-        assert!(verify(repo.get.was_called_with(list)))
     }
 
     /// Test successfully deleting a domain from a list
-    fn delete_test(list: List, domain: &str) {
+    fn delete_test(list: List, domain: &'static str) {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::default();
+        let mut repo = MockListRepository::new();
 
-        repo.contains
-            .given((list, domain.to_owned()))
-            .will_return(Ok(true));
-        repo.remove
-            .given((list, domain.to_owned()))
-            .will_return(Ok(()));
+        repo.expect_contains()
+            .with(eq(list), eq(domain))
+            .return_const(Ok(true));
+        repo.expect_remove()
+            .with(eq(list), eq(domain))
+            .return_const(Ok(()));
 
         let service = ListServiceImpl {
-            repo: Box::new(repo.clone()),
-            env: &env,
-            ftl: &ftl
+            repo: Box::new(repo),
+            env: Arc::new(env),
+            ftl: Arc::new(ftl)
         };
 
         service.remove(list, domain).unwrap();
-
-        assert!(verify(
-            repo.remove.was_called_with((list, domain.to_owned()))
-        ));
     }
 
     /// The lists are retrieved correctly
@@ -317,30 +259,25 @@ mod test {
     fn add_whitelist() {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::default();
+        let mut repo = MockListRepository::new();
 
-        repo.contains
-            .given((List::White, "example.com".to_owned()))
-            .will_return(Ok(false));
-        repo.add
-            .given((List::White, "example.com".to_owned()))
-            .will_return(Ok(()));
-        repo.contains
-            .given((List::Black, "example.com".to_owned()))
-            .will_return(Ok(false));
+        repo.expect_contains()
+            .with(eq(List::White), eq("example.com"))
+            .return_const(Ok(false));
+        repo.expect_add()
+            .with(eq(List::White), eq("example.com"))
+            .return_const(Ok(()));
+        repo.expect_contains()
+            .with(eq(List::Black), eq("example.com"))
+            .return_const(Ok(false));
 
         let service = ListServiceImpl {
-            repo: Box::new(repo.clone()),
-            env: &env,
-            ftl: &ftl
+            repo: Box::new(repo),
+            env: Arc::new(env),
+            ftl: Arc::new(ftl)
         };
 
         service.add(List::White, "example.com").unwrap();
-
-        assert!(verify(
-            repo.add
-                .was_called_with((List::White, "example.com".to_owned()))
-        ));
     }
 
     /// Adding a domain to the blacklist works when the domain does not exist
@@ -349,30 +286,25 @@ mod test {
     fn add_blacklist() {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::default();
+        let mut repo = MockListRepository::new();
 
-        repo.contains
-            .given((List::Black, "example.com".to_owned()))
-            .will_return(Ok(false));
-        repo.add
-            .given((List::Black, "example.com".to_owned()))
-            .will_return(Ok(()));
-        repo.contains
-            .given((List::White, "example.com".to_owned()))
-            .will_return(Ok(false));
+        repo.expect_contains()
+            .with(eq(List::Black), eq("example.com"))
+            .return_const(Ok(false));
+        repo.expect_add()
+            .with(eq(List::Black), eq("example.com"))
+            .return_const(Ok(()));
+        repo.expect_contains()
+            .with(eq(List::White), eq("example.com"))
+            .return_const(Ok(false));
 
         let service = ListServiceImpl {
-            repo: Box::new(repo.clone()),
-            env: &env,
-            ftl: &ftl
+            repo: Box::new(repo),
+            env: Arc::new(env),
+            ftl: Arc::new(ftl)
         };
 
         service.add(List::Black, "example.com").unwrap();
-
-        assert!(verify(
-            repo.add
-                .was_called_with((List::Black, "example.com".to_owned()))
-        ));
     }
 
     /// Adding a domain to the regex list works when the domain does not already
@@ -381,27 +313,22 @@ mod test {
     fn add_regexlist() {
         let env = TestEnvBuilder::new().build();
         let ftl = get_ftl();
-        let repo = ListRepositoryMock::default();
+        let mut repo = MockListRepository::new();
 
-        repo.contains
-            .given((List::Regex, "example.com".to_owned()))
-            .will_return(Ok(false));
-        repo.add
-            .given((List::Regex, "example.com".to_owned()))
-            .will_return(Ok(()));
+        repo.expect_contains()
+            .with(eq(List::Regex), eq("example.com"))
+            .return_const(Ok(false));
+        repo.expect_add()
+            .with(eq(List::Regex), eq("example.com"))
+            .return_const(Ok(()));
 
         let service = ListServiceImpl {
-            repo: Box::new(repo.clone()),
-            env: &env,
-            ftl: &ftl
+            repo: Box::new(repo),
+            env: Arc::new(env),
+            ftl: Arc::new(ftl)
         };
 
         service.add(List::Regex, "example.com").unwrap();
-
-        assert!(verify(
-            repo.add
-                .was_called_with((List::Regex, "example.com".to_owned()))
-        ));
     }
 
     #[test]

@@ -8,9 +8,6 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-#[cfg(test)]
-use libc;
-
 /// Used by FTL to check memory integrity in various structs
 #[cfg(test)]
 pub const MAGIC_BYTE: libc::c_uchar = 0x57;

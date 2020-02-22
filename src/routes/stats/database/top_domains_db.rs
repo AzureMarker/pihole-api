@@ -23,23 +23,24 @@ use crate::{
             top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply}
         }
     },
-    services::domain_audit::{DomainAuditRepository, DomainAuditRepositoryGuard},
+    services::{domain_audit::DomainAuditRepository, PiholeModule},
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
-use rocket::{request::Form, State};
+use rocket::request::Form;
+use shaku_rocket::{Inject, InjectProvided};
 
 /// Return the top domains
 #[get("/stats/database/top_domains?<from>&<until>&<params..>")]
 pub fn top_domains_db(
     _auth: User,
-    env: State<Env>,
-    db: FtlDatabase,
+    env: Inject<PiholeModule, Env>,
+    db: InjectProvided<PiholeModule, FtlDatabase>,
     from: u64,
     until: u64,
     params: Form<TopDomainParams>,
-    domain_audit: DomainAuditRepositoryGuard
+    domain_audit: InjectProvided<PiholeModule, dyn DomainAuditRepository>
 ) -> Reply {
     reply_result(top_domains_db_impl(
         &env,
@@ -193,7 +194,7 @@ mod test {
         databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         routes::stats::top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply},
-        services::domain_audit::DomainAuditRepositoryMock,
+        services::domain_audit::MockDomainAuditRepository,
         testing::TestEnvBuilder
     };
 
@@ -263,7 +264,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &DomainAuditRepositoryMock::default()
+            &MockDomainAuditRepository::new()
         )
         .unwrap();
 
@@ -303,7 +304,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &DomainAuditRepositoryMock::default()
+            &MockDomainAuditRepository::new()
         )
         .unwrap();
 
@@ -336,7 +337,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &DomainAuditRepositoryMock::default()
+            &MockDomainAuditRepository::new()
         )
         .unwrap();
 
@@ -378,7 +379,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &DomainAuditRepositoryMock::default()
+            &MockDomainAuditRepository::new()
         )
         .unwrap();
 
@@ -414,11 +415,10 @@ mod test {
             limit: Some(2),
             ..TopDomainParams::default()
         };
-        let domain_audit = DomainAuditRepositoryMock::default();
+        let mut domain_audit = MockDomainAuditRepository::new();
         domain_audit
-            .get_all
-            .given(())
-            .will_return(Ok(vec!["1.ubuntu.pool.ntp.org".to_owned()]));
+            .expect_get_all()
+            .return_const(Ok(vec!["1.ubuntu.pool.ntp.org".to_owned()]));
 
         let actual = top_domains_db_impl(
             &env,
@@ -464,13 +464,16 @@ mod test {
             limit: Some(2),
             ..TopDomainParams::default()
         };
+        let mut domain_audit = MockDomainAuditRepository::new();
+        domain_audit.expect_get_all().return_const(Ok(Vec::new()));
+
         let actual = top_domains_db_impl(
             &env,
             &*db,
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &DomainAuditRepositoryMock::default()
+            &domain_audit
         )
         .unwrap();
 

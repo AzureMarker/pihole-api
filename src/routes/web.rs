@@ -8,12 +8,12 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::env::Env;
+use crate::{env::Env, services::PiholeModule};
 use rocket::{
     http::ContentType,
-    response::{Redirect, Response},
-    State
+    response::{Redirect, Response}
 };
+use shaku_rocket::Inject;
 use std::{borrow::Cow, io::Cursor, path::PathBuf};
 
 #[derive(RustEmbed)]
@@ -102,20 +102,20 @@ fn get_index_html(env: &Env) -> Option<Cow<'static, [u8]>> {
 /// Redirect root requests to the web interface. This allows http://pi.hole to
 /// redirect to http://pi.hole/admin
 #[get("/")]
-pub fn web_interface_redirect(env: State<Env>) -> Redirect {
+pub fn web_interface_redirect(env: Inject<PiholeModule, Env>) -> Redirect {
     Redirect::to(env.config().web.path.to_string_lossy().into_owned())
 }
 
 /// Return the index page of the web interface. This handler is mounted on a
 /// route taken from the config, such as `/admin`, so it must use `/`.
 #[get("/")]
-pub fn web_interface_index<'r>(env: State<Env>) -> Option<Response<'r>> {
+pub fn web_interface_index<'r>(env: Inject<PiholeModule, Env>) -> Option<Response<'r>> {
     get_index_response(&env)
 }
 
 /// Return the requested page/file, if it exists. This handler is mounted on a
 /// route taken from the config, such as `/admin`, so it must use `/`.
 #[get("/<path..>")]
-pub fn web_interface<'r>(path: PathBuf, env: State<Env>) -> Option<Response<'r>> {
+pub fn web_interface<'r>(path: PathBuf, env: Inject<PiholeModule, Env>) -> Option<Response<'r>> {
     get_file(&path.display().to_string(), &env)
 }

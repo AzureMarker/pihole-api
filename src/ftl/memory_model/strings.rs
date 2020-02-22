@@ -8,7 +8,6 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use libc;
 use shmem::Array;
 use std::{ffi::CStr, marker::PhantomData};
 
@@ -63,7 +62,6 @@ impl<'test> FtlStrings<'test> {
 #[cfg(test)]
 mod tests {
     use super::FtlStrings;
-    use libc;
     use std::collections::HashMap;
 
     #[test]

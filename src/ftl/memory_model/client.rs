@@ -9,7 +9,6 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::ftl::memory_model::{over_time::OVERTIME_SLOTS, strings::FtlStrings};
-use libc;
 use std::hash::{Hash, Hasher};
 
 #[cfg(test)]

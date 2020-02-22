@@ -9,7 +9,6 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{ftl::FtlQueryType, settings::FtlPrivacyLevel};
-use libc;
 use rocket::{http::RawStr, request::FromFormValue};
 
 /// A list of query statuses which mark a query as blocked

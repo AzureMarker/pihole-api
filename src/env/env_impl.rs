@@ -22,6 +22,7 @@ use std::{
 
 #[cfg(test)]
 use failure::Fail;
+use shaku::{Component, ContainerBuildContext, Module};
 #[cfg(test)]
 use std::{
     collections::HashMap,
@@ -36,6 +37,22 @@ pub enum Env {
     Production(Config),
     #[cfg(test)]
     Test(Config, HashMap<PiholeFile, NamedTempFile>)
+}
+
+// TODO: make this less awkward?
+impl<M: Module> Component<M> for Env {
+    type Interface = Self;
+    type Parameters = Config;
+
+    fn build(_: &mut ContainerBuildContext<M>, config: Config) -> Box<Env> {
+        Box::new(Env::Production(config))
+    }
+}
+
+impl Default for Env {
+    fn default() -> Self {
+        Env::Production(Config::default())
+    }
 }
 
 impl Clone for Env {

@@ -11,14 +11,15 @@
 use crate::{
     env::Env,
     routes::auth::User,
+    services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry},
     util::{reply_data, Reply}
 };
-use rocket::State;
+use shaku_rocket::Inject;
 
 /// Read FTL's settings
 #[get("/settings/ftl")]
-pub fn get_ftl(env: State<Env>, _auth: User) -> Reply {
+pub fn get_ftl(env: Inject<PiholeModule, Env>, _auth: User) -> Reply {
     // if setting is not present, report default
     let socket_listening = FtlConfEntry::SocketListening.read(&env)?;
     let query_display = FtlConfEntry::QueryDisplay.read(&env)?;

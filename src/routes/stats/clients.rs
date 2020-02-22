@@ -15,17 +15,19 @@ use crate::{
         auth::User,
         stats::common::{remove_excluded_clients, remove_hidden_clients}
     },
+    services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_result, Error, Reply}
 };
 use rocket::{request::Form, State};
+use shaku_rocket::Inject;
 
 /// Get client information
 #[get("/stats/clients?<params..>")]
 pub fn clients(
     _auth: User,
     ftl_memory: State<FtlMemory>,
-    env: State<Env>,
+    env: Inject<PiholeModule, Env>,
     params: Form<ClientParams>
 ) -> Reply {
     reply_result(get_clients(&ftl_memory, &env, params.into_inner()))

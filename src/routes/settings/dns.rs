@@ -11,11 +11,12 @@
 use crate::{
     env::Env,
     routes::{auth::User, settings::common::restart_dns},
+    services::PiholeModule,
     settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry, ValueType},
     util::{reply_data, reply_success, Error, ErrorKind, Reply}
 };
-use rocket::State;
 use rocket_contrib::json::Json;
+use shaku_rocket::Inject;
 
 #[derive(Serialize, Deserialize)]
 pub struct DnsSettings {
@@ -84,7 +85,7 @@ impl DnsConditionalForwarding {
 }
 
 /// Get upstream DNS servers
-fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
+fn get_upstream_dns(env: &Env) -> Result<Vec<String>, Error> {
     let mut upstream_dns = Vec::new();
 
     for num in 1.. {
@@ -102,7 +103,7 @@ fn get_upstream_dns(env: &State<Env>) -> Result<Vec<String>, Error> {
 
 /// Get DNS Configuration
 #[get("/settings/dns")]
-pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
+pub fn get_dns(env: Inject<PiholeModule, Env>, _auth: User) -> Reply {
     let dns_settings = DnsSettings {
         upstream_dns: get_upstream_dns(&env)?,
         options: DnsOptions {
@@ -124,7 +125,7 @@ pub fn get_dns(env: State<Env>, _auth: User) -> Reply {
 
 /// Update DNS Configuration
 #[put("/settings/dns", data = "<data>")]
-pub fn put_dns(env: State<Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
+pub fn put_dns(env: Inject<PiholeModule, Env>, _auth: User, data: Json<DnsSettings>) -> Reply {
     let settings: DnsSettings = data.into_inner();
 
     if !settings.is_valid() {

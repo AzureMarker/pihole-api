@@ -12,15 +12,17 @@ use crate::{
     env::{Env, PiholeFile},
     ftl::FtlConnectionType,
     routes::web::WebAssets,
+    services::PiholeModule,
     util::{reply_data, Error, ErrorKind, Reply}
 };
 use failure::ResultExt;
 use rocket::State;
+use shaku_rocket::Inject;
 use std::{io::Read, str};
 
 /// Get the versions of all Pi-hole systems
 #[get("/version")]
-pub fn version(env: State<Env>, ftl: State<FtlConnectionType>) -> Reply {
+pub fn version(env: Inject<PiholeModule, Env>, ftl: State<FtlConnectionType>) -> Reply {
     let core_version = read_core_version(&env).unwrap_or_default();
     let web_version = read_web_version().unwrap_or_default();
     let ftl_version = read_ftl_version(&ftl).unwrap_or_default();

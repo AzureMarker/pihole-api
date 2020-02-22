@@ -12,15 +12,22 @@ use crate::{
     databases::ftl::FtlDatabase,
     ftl::FtlQueryType,
     routes::{auth::User, stats::query_types::QueryTypeReply},
+    services::PiholeModule,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
+use shaku_rocket::InjectProvided;
 use std::collections::HashMap;
 
 /// Get query type counts from the database
 #[get("/stats/database/query_types?<from>&<until>")]
-pub fn query_types_db(from: u64, until: u64, _auth: User, db: FtlDatabase) -> Reply {
+pub fn query_types_db(
+    from: u64,
+    until: u64,
+    _auth: User,
+    db: InjectProvided<PiholeModule, FtlDatabase>
+) -> Reply {
     reply_result(query_types_db_impl(from, until, &db as &SqliteConnection))
 }
 

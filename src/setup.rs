@@ -9,26 +9,32 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::{ftl::FtlDatabase, gravity::GravityDatabase, load_databases},
+    databases::{
+        custom_connection::CustomSqliteConnection,
+        ftl::{FtlDatabasePool, FtlDatabasePoolParameters},
+        gravity::{GravityDatabasePool, GravityDatabasePoolParameters},
+        load_ftl_db_config, load_gravity_db_config
+    },
     env::{Config, Env},
-    ftl::{FtlConnectionType, FtlMemory},
+    ftl::FtlMemory,
     routes::{
         auth::{self, AuthData},
         dns, settings, stats, version, web
     },
+    services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
     util::{Error, ErrorKind}
 };
+use failure::ResultExt;
 use rocket::{
     config::{ConfigBuilder, Environment},
     Rocket
 };
 use rocket_cors::CorsOptions;
+use shaku::ContainerBuilder;
 
 #[cfg(test)]
-use {
-    crate::databases::load_test_databases, rocket::config::LoggingLevel, std::collections::HashMap
-};
+use rocket::config::LoggingLevel;
 
 #[catch(404)]
 fn not_found() -> Error {
@@ -48,21 +54,31 @@ pub fn start() -> Result<(), Error> {
 
     println!("{:#?}", env.config());
 
+    let mut container_builder = ContainerBuilder::new();
+    container_builder
+        .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
+            pool: CustomSqliteConnection::pool(load_gravity_db_config(&env)?)
+                .context(ErrorKind::GravityDatabase)?
+        })
+        .with_component_parameters::<FtlDatabasePool>(FtlDatabasePoolParameters {
+            pool: CustomSqliteConnection::pool(load_ftl_db_config(&env)?)
+                .context(ErrorKind::FtlDatabase)?
+        })
+        .with_component_parameters::<Env>(env.config().clone());
+
     setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Production)
                 .address(env.config().general.address.as_str())
                 .port(env.config().general.port as u16)
                 .log_level(env.config().general.log_level)
-                .extra("databases", load_databases(&env)?)
                 .finalize()
                 .unwrap()
         ),
-        FtlConnectionType::Socket,
         FtlMemory::production(),
-        env,
+        env.config(),
         if key.is_empty() { None } else { Some(key) },
-        true
+        container_builder
     )
     .launch();
 
@@ -72,36 +88,32 @@ pub fn start() -> Result<(), Error> {
 /// Setup the API with the testing data and return a Client to test with
 #[cfg(test)]
 pub fn test(
-    ftl_data: HashMap<String, Vec<u8>>,
     ftl_memory: FtlMemory,
-    env: Env,
-    needs_database: bool,
-    api_key: Option<String>
+    config: &Config,
+    api_key: Option<String>,
+    container_builder: ContainerBuilder<PiholeModule>
 ) -> Rocket {
     setup(
         rocket::custom(
             ConfigBuilder::new(Environment::Development)
                 .log_level(LoggingLevel::Debug)
-                .extra("databases", load_test_databases())
                 .finalize()
                 .unwrap()
         ),
-        FtlConnectionType::Test(ftl_data),
         ftl_memory,
-        env,
+        &config,
         api_key,
-        needs_database
+        container_builder
     )
 }
 
 /// General server setup
 fn setup(
     server: Rocket,
-    ftl_socket: FtlConnectionType,
     ftl_memory: FtlMemory,
-    env: Env,
+    config: &Config,
     api_key: Option<String>,
-    needs_database: bool
+    mut container_builder: ContainerBuilder<PiholeModule>
 ) -> Rocket {
     // Set up CORS
     let cors = CorsOptions {
@@ -111,21 +123,12 @@ fn setup(
     .to_cors()
     .unwrap();
 
-    // Attach the databases if required
-    let server = if needs_database {
-        server
-            .attach(FtlDatabase::fairing())
-            .attach(GravityDatabase::fairing())
-    } else {
-        server
-    };
-
     // Conditionally enable and mount the web interface
-    let server = if env.config().web.enabled {
-        let web_route = env.config().web.path.to_string_lossy();
+    let server = if config.web.enabled {
+        let web_route = config.web.path.to_string_lossy();
 
         // Check if the root redirect should be enabled
-        let server = if env.config().web.root_redirect && web_route != "/" {
+        let server = if config.web.root_redirect && web_route != "/" {
             server.mount("/", routes![web::web_interface_redirect])
         } else {
             server
@@ -141,12 +144,15 @@ fn setup(
     };
 
     // The path to mount the API on (always <web_root>/api)
-    let mut api_mount_path = env.config().web.path.clone();
+    let mut api_mount_path = config.web.path.clone();
     api_mount_path.push("api");
     let api_mount_path_str = api_mount_path.to_string_lossy();
 
     // Create a scheduler for scheduling work (ex. disable for 10 minutes)
     let scheduler = task_scheduler::Scheduler::new();
+
+    // Build the dependency injection container
+    let container = container_builder.build();
 
     // Set up the server
     server
@@ -154,16 +160,14 @@ fn setup(
         .attach(cors)
         // Add custom error handlers
         .register(catchers![not_found, unauthorized])
-        // Manage the FTL socket configuration
-        .manage(ftl_socket)
         // Manage the FTL shared memory configuration
         .manage(ftl_memory)
-        // Manage the environment
-        .manage(env)
         // Manage the API key
         .manage(AuthData::new(api_key))
         // Manage the scheduler
         .manage(scheduler)
+        // Manage the dependency injection container
+        .manage(container)
         // Mount the API
         .mount(&api_mount_path_str, routes![
             version::version,

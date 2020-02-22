@@ -21,19 +21,21 @@ use crate::{
             top_clients::{TopClientItemReply, TopClientParams, TopClientsReply}
         }
     },
+    services::PiholeModule,
     settings::ValueType,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
-use rocket::{request::Form, State};
+use rocket::request::Form;
+use shaku_rocket::{Inject, InjectProvided};
 
 /// Get the top clients
 #[get("/stats/database/top_clients?<from>&<until>&<params..>")]
 pub fn top_clients_db(
     _auth: User,
-    env: State<Env>,
-    db: FtlDatabase,
+    env: Inject<PiholeModule, Env>,
+    db: InjectProvided<PiholeModule, FtlDatabase>,
     from: u64,
     until: u64,
     params: Form<TopClientParams>

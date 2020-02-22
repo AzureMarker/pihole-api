@@ -17,7 +17,6 @@ use rocket::{
 };
 use rocket_contrib::json::JsonValue;
 use serde::Serialize;
-use shmem;
 use std::{
     env,
     fmt::{self, Display},

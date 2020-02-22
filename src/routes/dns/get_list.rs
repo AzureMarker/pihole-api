@@ -9,49 +9,56 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    services::lists::{List, ListServiceGuard},
+    services::{
+        lists::{List, ListService},
+        PiholeModule
+    },
     util::{reply_result, Reply}
 };
+use shaku_rocket::InjectProvided;
 
 /// Get the Whitelist domains
 #[get("/dns/whitelist")]
-pub fn get_whitelist(service: ListServiceGuard) -> Reply {
+pub fn get_whitelist(service: InjectProvided<PiholeModule, dyn ListService>) -> Reply {
     reply_result(service.get(List::White))
 }
 
 /// Get the Blacklist domains
 #[get("/dns/blacklist")]
-pub fn get_blacklist(service: ListServiceGuard) -> Reply {
+pub fn get_blacklist(service: InjectProvided<PiholeModule, dyn ListService>) -> Reply {
     reply_result(service.get(List::Black))
 }
 
 /// Get the Regex list domains
 #[get("/dns/regexlist")]
-pub fn get_regexlist(service: ListServiceGuard) -> Reply {
+pub fn get_regexlist(service: InjectProvided<PiholeModule, dyn ListService>) -> Reply {
     reply_result(service.get(List::Regex))
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        services::lists::{List, ListServiceMock},
+        services::lists::{List, ListService, MockListService},
         testing::TestBuilder
     };
-    use mock_it::verify;
+    use mockall::predicate::*;
 
     /// Test that the domains are returned correctly
     fn get_test(list: List, endpoint: &str, domains: Vec<String>) {
-        let service = ListServiceMock::default();
-
-        service.get.given(list).will_return(Ok(domains.clone()));
-
         TestBuilder::new()
             .endpoint(endpoint)
-            .mock_service(service.clone())
             .expect_json(json!(domains))
-            .test();
+            .mock_provider::<dyn ListService>(Box::new(move |_| {
+                let mut service = MockListService::new();
 
-        assert!(verify(service.get.was_called_with(list)));
+                service
+                    .expect_get()
+                    .with(eq(list))
+                    .return_const(Ok(domains.clone()));
+
+                Ok(Box::new(service))
+            }))
+            .test();
     }
 
     #[test]

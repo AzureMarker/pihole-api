@@ -7,7 +7,7 @@ RUN dpkg --add-architecture armel && \
         gcc libc-dev libsqlite3-dev:armel gcc-arm-linux-gnueabi libc-dev-armel-cross \
         build-essential debhelper dh-systemd openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-05-11 && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2020-02-17 && \
     export PATH="/root/.cargo/bin:$PATH" && \
     rustup target add arm-unknown-linux-gnueabi
 
@@ -21,4 +21,4 @@ ENV PATH="/root/.cargo/bin:$PATH" \
     CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABI_LINKER=arm-linux-gnueabi-gcc \
     CC_arm_unknown_linux_gnueabi=arm-linux-gnueabi-gcc
 
-LABEL version=2
+LABEL version=3

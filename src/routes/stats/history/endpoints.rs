@@ -13,6 +13,7 @@ use crate::{
     env::Env,
     ftl::{FtlDnssecType, FtlMemory, FtlQueryReplyType, FtlQueryStatus, FtlQueryType},
     routes::{auth::User, stats::history::get_history::get_history},
+    services::PiholeModule,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use base64::{decode, encode};
@@ -22,15 +23,16 @@ use rocket::{
     request::{Form, FromFormValue},
     State
 };
+use shaku_rocket::{Inject, InjectProvided};
 
 /// Get the query history according to the specified parameters
 #[get("/stats/history?<params..>")]
 pub fn history(
     _auth: User,
     ftl_memory: State<FtlMemory>,
-    env: State<Env>,
+    env: Inject<PiholeModule, Env>,
     params: Form<HistoryParams>,
-    db: FtlDatabase
+    db: InjectProvided<PiholeModule, FtlDatabase>
 ) -> Reply {
     reply_result(get_history(&ftl_memory, &env, params.into_inner(), &db))
 }

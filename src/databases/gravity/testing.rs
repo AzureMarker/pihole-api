@@ -14,8 +14,8 @@ pub const TEST_GRAVITY_DATABASE_SCHEMA: &str = include_str!("../../../test/gravi
 
 /// Connect to the testing database. This creates a new in-memory database so
 /// that it is isolated from other tests.
-pub fn connect_to_gravity_test_db() -> GravityDatabase {
+pub fn connect_to_gravity_test_db() -> Box<GravityDatabase> {
     let pool = create_memory_db(TEST_GRAVITY_DATABASE_SCHEMA, 1);
 
-    GravityDatabase(pool.get().unwrap())
+    Box::new(GravityDatabase(pool.get().unwrap()))
 }

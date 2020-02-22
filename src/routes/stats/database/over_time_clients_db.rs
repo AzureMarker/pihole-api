@@ -20,12 +20,13 @@ use crate::{
             over_time_clients::{OverTimeClientItem, OverTimeClients}
         }
     },
+    services::PiholeModule,
     settings::ValueType,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, SqliteConnection};
 use failure::ResultExt;
-use rocket::State;
+use shaku_rocket::{Inject, InjectProvided};
 use std::collections::HashMap;
 
 /// Get the clients queries over time data from the database
@@ -35,8 +36,8 @@ pub fn over_time_clients_db(
     until: u64,
     interval: Option<usize>,
     _auth: User,
-    db: FtlDatabase,
-    env: State<Env>
+    db: InjectProvided<PiholeModule, FtlDatabase>,
+    env: Inject<PiholeModule, Env>
 ) -> Reply {
     reply_result(over_time_clients_db_impl(
         from,

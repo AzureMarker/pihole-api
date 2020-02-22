@@ -11,11 +11,12 @@
 use crate::{
     env::Env,
     routes::{auth::User, settings::common::restart_dns},
+    services::PiholeModule,
     settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry},
     util::{reply_data, reply_success, Error, ErrorKind, Reply}
 };
-use rocket::State;
 use rocket_contrib::json::Json;
+use shaku_rocket::Inject;
 
 #[derive(Serialize, Deserialize)]
 pub struct DhcpSettings {
@@ -51,7 +52,7 @@ impl DhcpSettings {
 
 /// Get DHCP Configuration
 #[get("/settings/dhcp")]
-pub fn get_dhcp(env: State<Env>, _auth: User) -> Reply {
+pub fn get_dhcp(env: Inject<PiholeModule, Env>, _auth: User) -> Reply {
     let dhcp_settings = DhcpSettings {
         active: SetupVarsEntry::DhcpActive.is_true(&env)?,
         ip_start: SetupVarsEntry::DhcpStart.read(&env)?,
@@ -68,7 +69,7 @@ pub fn get_dhcp(env: State<Env>, _auth: User) -> Reply {
 
 /// Update DHCP Configuration
 #[put("/settings/dhcp", data = "<data>")]
-pub fn put_dhcp(env: State<Env>, _auth: User, data: Json<DhcpSettings>) -> Reply {
+pub fn put_dhcp(env: Inject<PiholeModule, Env>, _auth: User, data: Json<DhcpSettings>) -> Reply {
     let settings: DhcpSettings = data.into_inner();
 
     if !settings.is_valid() {

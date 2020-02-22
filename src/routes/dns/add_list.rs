@@ -10,10 +10,14 @@
 
 use crate::{
     routes::auth::User,
-    services::lists::{List, ListServiceGuard},
+    services::{
+        lists::{List, ListService},
+        PiholeModule
+    },
     util::{reply_success, Reply}
 };
 use rocket_contrib::json::Json;
+use shaku_rocket::InjectProvided;
 
 /// Represents an API input containing a domain
 #[derive(Deserialize)]
@@ -25,7 +29,7 @@ pub struct DomainInput {
 #[post("/dns/whitelist", data = "<domain_input>")]
 pub fn add_whitelist(
     _auth: User,
-    list_service: ListServiceGuard,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
     domain_input: Json<DomainInput>
 ) -> Reply {
     list_service.add(List::White, &domain_input.0.domain)?;
@@ -36,7 +40,7 @@ pub fn add_whitelist(
 #[post("/dns/blacklist", data = "<domain_input>")]
 pub fn add_blacklist(
     _auth: User,
-    list_service: ListServiceGuard,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
     domain_input: Json<DomainInput>
 ) -> Reply {
     list_service.add(List::Black, &domain_input.0.domain)?;
@@ -47,7 +51,7 @@ pub fn add_blacklist(
 #[post("/dns/regexlist", data = "<domain_input>")]
 pub fn add_regexlist(
     _auth: User,
-    list_service: ListServiceGuard,
+    list_service: InjectProvided<PiholeModule, dyn ListService>,
     domain_input: Json<DomainInput>
 ) -> Reply {
     list_service.add(List::Regex, &domain_input.0.domain)?;
@@ -57,32 +61,30 @@ pub fn add_regexlist(
 #[cfg(test)]
 mod test {
     use crate::{
-        services::lists::{List, ListServiceMock},
+        services::lists::{List, ListService, MockListService},
         testing::TestBuilder
     };
-    use mock_it::verify;
+    use mockall::predicate::*;
     use rocket::http::Method;
 
     /// Test that a successful add returns success
-    fn add_test(list: List, endpoint: &str, domain: &str) {
-        let service = ListServiceMock::default();
-
-        service
-            .add
-            .given((list, domain.to_owned()))
-            .will_return(Ok(()));
-
+    fn add_test(list: List, endpoint: &str, domain: &'static str) {
         TestBuilder::new()
             .endpoint(endpoint)
             .method(Method::Post)
-            .mock_service(service.clone())
+            .mock_provider::<dyn ListService>(Box::new(move |_| {
+                let mut service = MockListService::new();
+
+                service
+                    .expect_add()
+                    .with(eq(list), eq(domain))
+                    .return_const(Ok(()));
+
+                Ok(Box::new(service))
+            }))
             .body(json!({ "domain": domain }))
             .expect_json(json!({ "status": "success" }))
             .test();
-
-        assert!(verify(
-            service.add.was_called_with((list, domain.to_owned()))
-        ));
     }
 
     #[test]

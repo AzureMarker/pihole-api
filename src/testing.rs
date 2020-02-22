@@ -9,14 +9,23 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
+    databases::{
+        ftl::{connect_to_ftl_test_db, FtlDatabase},
+        gravity::{connect_to_gravity_test_db, GravityDatabase},
+        DatabaseService, FakeDatabaseService
+    },
     env::{Config, Env, PiholeFile},
-    ftl::{FtlCounters, FtlMemory, FtlSettings},
+    ftl::{FtlConnectionType, FtlCounters, FtlMemory, FtlSettings},
+    services::PiholeModule,
     setup
 };
 use rocket::{
     http::{ContentType, Header, Method, Status},
     local::Client,
     Rocket
+};
+use shaku::{
+    provider::ProviderFn, ContainerBuilder, HasComponent, HasProvider, Interface, ProvidedInterface
 };
 use std::{
     collections::HashMap,
@@ -152,6 +161,7 @@ pub struct TestBuilder {
     expected_json: serde_json::Value,
     expected_status: Status,
     needs_database: bool,
+    container_builder: ContainerBuilder<PiholeModule>,
     rocket_hooks: Vec<Box<dyn FnOnce(Rocket) -> Rocket>>
 }
 
@@ -183,6 +193,7 @@ impl TestBuilder {
             .into(),
             expected_status: Status::Ok,
             needs_database: false,
+            container_builder: ContainerBuilder::new(),
             rocket_hooks: Vec::new()
         }
     }
@@ -262,25 +273,27 @@ impl TestBuilder {
         self
     }
 
-    /// Add a function that will hook into Rocket's startup to add custom
-    /// settings, such as state.
-    pub fn add_rocket_hook(mut self, hook: impl FnOnce(Rocket) -> Rocket + 'static) -> Self {
-        self.rocket_hooks.push(Box::new(hook));
+    #[allow(unused)]
+    pub fn mock_component<I: Interface + ?Sized>(mut self, component: Box<I>) -> Self
+    where
+        PiholeModule: HasComponent<I>
+    {
+        self.container_builder.with_component_override(component);
         self
     }
 
-    /// Add a struct into Rocket's state
-    pub fn add_state(self, state: impl Send + Sync + 'static) -> Self {
-        self.add_rocket_hook(move |rocket| rocket.manage(state))
+    pub fn mock_provider<I: ProvidedInterface + ?Sized>(
+        mut self,
+        provider_fn: ProviderFn<PiholeModule, I>
+    ) -> Self
+    where
+        PiholeModule: HasProvider<I>
+    {
+        self.container_builder.with_provider_override(provider_fn);
+        self
     }
 
-    /// Mock a service by adding it to Rocket's state. This is an alias of
-    /// `add_state`
-    pub fn mock_service(self, service: impl Send + Sync + 'static) -> Self {
-        self.add_state(service)
-    }
-
-    pub fn test(self) {
+    pub fn test(mut self) {
         // Save the files for verification
         let test_files = self.test_env_builder.clone_test_files();
 
@@ -289,15 +302,34 @@ impl TestBuilder {
         } else {
             None
         };
+        let env = self.test_env_builder.build();
+        let config = env.config().clone();
+
+        // Configure the container builder
+        self.container_builder
+            .with_component_override(Box::new(env))
+            .with_component_override(Box::new(FtlConnectionType::Test(self.ftl_data)));
+
+        if self.needs_database {
+            self.container_builder
+                .with_provider_override::<GravityDatabase>(Box::new(|_| {
+                    Ok(connect_to_gravity_test_db())
+                }))
+                .with_provider_override::<FtlDatabase>(Box::new(|_| {
+                    Ok(Box::new(connect_to_ftl_test_db()))
+                }));
+        } else {
+            self.container_builder
+                .with_component_override::<dyn DatabaseService<GravityDatabase>>(Box::new(
+                    FakeDatabaseService
+                ))
+                .with_component_override::<dyn DatabaseService<FtlDatabase>>(Box::new(
+                    FakeDatabaseService
+                ));
+        }
 
         // Configure the test server
-        let mut rocket = setup::test(
-            self.ftl_data,
-            self.ftl_memory,
-            self.test_env_builder.build(),
-            self.needs_database,
-            api_key
-        );
+        let mut rocket = setup::test(self.ftl_memory, &config, api_key, self.container_builder);
 
         // Execute the Rocket hooks
         for hook in self.rocket_hooks {

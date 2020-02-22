@@ -18,15 +18,22 @@ use crate::{
             upstreams::{UpstreamItemReply, UpstreamsReply}
         }
     },
+    services::PiholeModule,
     util::{reply_result, Error, ErrorKind, Reply}
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
+use shaku_rocket::InjectProvided;
 use std::collections::HashMap;
 
 /// Get upstream data from the database
 #[get("/stats/database/upstreams?<from>&<until>")]
-pub fn upstreams_db(from: u64, until: u64, _auth: User, db: FtlDatabase) -> Reply {
+pub fn upstreams_db(
+    from: u64,
+    until: u64,
+    _auth: User,
+    db: InjectProvided<PiholeModule, FtlDatabase>
+) -> Reply {
     reply_result(upstreams_db_impl(from, until, &db as &SqliteConnection))
 }
 

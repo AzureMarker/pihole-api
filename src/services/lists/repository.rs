@@ -15,17 +15,11 @@ use crate::{
 };
 use diesel::{delete, dsl::exists, insert_into, prelude::*, select};
 use failure::ResultExt;
-use rocket::{
-    request::{self, FromRequest},
-    Outcome, Request
-};
-use std::marker::PhantomData;
-
-#[cfg(test)]
-use mock_it::Mock;
+use shaku::{ProvidedInterface, Provider};
 
 /// Describes interactions with the list data store
-pub trait ListRepository {
+#[cfg_attr(test, mockall::automock)]
+pub trait ListRepository: ProvidedInterface {
     /// Get all of the domains in the list
     fn get(&self, list: List) -> Result<Vec<String>, Error>;
 
@@ -39,38 +33,15 @@ pub trait ListRepository {
     fn remove(&self, list: List, domain: &str) -> Result<(), Error>;
 }
 
-service!(
-    ListRepositoryGuard,
-    ListRepository,
-    ListRepositoryImpl,
-    ListRepositoryMock
-);
-
 /// The implementation of `ListRepository`
-pub struct ListRepositoryImpl<'r> {
-    db: GravityDatabase,
-    phantom: PhantomData<&'r ()>
+#[derive(Provider)]
+#[shaku(interface = ListRepository)]
+pub struct ListRepositoryImpl {
+    #[shaku(provide)]
+    db: Box<GravityDatabase>
 }
 
-impl<'r> ListRepositoryImpl<'r> {
-    fn new(db: GravityDatabase) -> Self {
-        ListRepositoryImpl {
-            db,
-            phantom: PhantomData
-        }
-    }
-}
-
-impl<'a, 'r> FromRequest<'a, 'r> for ListRepositoryImpl<'r> {
-    type Error = ();
-
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
-        let db = request.guard::<GravityDatabase>()?;
-        Outcome::Success(ListRepositoryImpl::new(db))
-    }
-}
-
-impl<'r> ListRepository for ListRepositoryImpl<'r> {
+impl ListRepository for ListRepositoryImpl {
     fn get(&self, list: List) -> Result<Vec<String>, Error> {
         let db = &self.db as &SqliteConnection;
 
@@ -194,47 +165,6 @@ impl<'r> ListRepository for ListRepositoryImpl<'r> {
     }
 }
 
-// TODO: add proc macro to mocking library to generate the mock
-#[cfg(test)]
-#[derive(Clone)]
-pub struct ListRepositoryMock {
-    pub get: Mock<List, Result<Vec<String>, Error>>,
-    pub contains: Mock<(List, String), Result<bool, Error>>,
-    pub add: Mock<(List, String), Result<(), Error>>,
-    pub remove: Mock<(List, String), Result<(), Error>>
-}
-
-#[cfg(test)]
-impl Default for ListRepositoryMock {
-    fn default() -> Self {
-        ListRepositoryMock {
-            get: Mock::new(Ok(Vec::new())),
-            contains: Mock::new(Ok(false)),
-            add: Mock::new(Ok(())),
-            remove: Mock::new(Ok(()))
-        }
-    }
-}
-
-#[cfg(test)]
-impl ListRepository for ListRepositoryMock {
-    fn get(&self, list: List) -> Result<Vec<String>, Error> {
-        self.get.called(list)
-    }
-
-    fn contains(&self, list: List, domain: &str) -> Result<bool, Error> {
-        self.contains.called((list, domain.to_owned()))
-    }
-
-    fn add(&self, list: List, domain: &str) -> Result<(), Error> {
-        self.add.called((list, domain.to_owned()))
-    }
-
-    fn remove(&self, list: List, domain: &str) -> Result<(), Error> {
-        self.remove.called((list, domain.to_owned()))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{ListRepository, ListRepositoryImpl};
@@ -244,7 +174,7 @@ mod tests {
     /// expected list
     fn get_test(list: List, expected_domains: Vec<String>) {
         let db = connect_to_gravity_test_db();
-        let repo = ListRepositoryImpl::new(db);
+        let repo = ListRepositoryImpl { db };
 
         let actual_domains = repo.get(list).unwrap();
 
@@ -254,7 +184,7 @@ mod tests {
     /// Assert that the list contains the given domain
     fn contains_test(list: List, domain: &str) {
         let db = connect_to_gravity_test_db();
-        let repo = ListRepositoryImpl::new(db);
+        let repo = ListRepositoryImpl { db };
 
         assert!(repo.contains(list, domain).unwrap())
     }
@@ -262,7 +192,7 @@ mod tests {
     /// Assert that adding a domain not already on the list works
     fn add_test(list: List, domain: &str) {
         let db = connect_to_gravity_test_db();
-        let repo = ListRepositoryImpl::new(db);
+        let repo = ListRepositoryImpl { db };
 
         // Make sure it doesn't exist already
         let initial_domains = repo.get(list).unwrap();
@@ -278,7 +208,7 @@ mod tests {
     /// Assert that deleting a domain from the list works
     fn delete_test(list: List, domain: &str) {
         let db = connect_to_gravity_test_db();
-        let repo = ListRepositoryImpl::new(db);
+        let repo = ListRepositoryImpl { db };
 
         // Make sure the domain is on the list
         let domains = repo.get(list).unwrap();
