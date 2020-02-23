@@ -25,7 +25,7 @@ use rocket::{
     Rocket
 };
 use shaku::{
-    provider::ProviderFn, ContainerBuilder, HasComponent, HasProvider, Interface, ProvidedInterface
+    ContainerBuilder, HasComponent, HasProvider, Interface, ProvidedInterface, ProviderFn
 };
 use std::{
     collections::HashMap,
