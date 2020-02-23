@@ -17,12 +17,15 @@ use crate::{
     },
     ftl::{FtlDnssecType, FtlQueryReplyType},
     routes::stats::QueryReply,
-    settings::{ConfigEntry, FtlConfEntry}
+    settings::{ConfigEntry, FtlConfEntry},
+    util,
+    util::ErrorKind
 };
 use diesel::SqliteConnection;
+use failure::{Fail, ResultExt};
 use rocket_contrib::databases::r2d2::{Pool, PooledConnection};
 use shaku::{Component, Container, HasComponent, Module, Provider};
-use std::ops::Deref;
+use std::{error::Error, ops::Deref};
 
 fn default_connection() -> Pool<CustomSqliteConnectionManager> {
     let config = CustomDBConfig {
@@ -42,11 +45,12 @@ pub struct FtlDatabasePool {
 }
 
 impl DatabaseService<FtlDatabase> for FtlDatabasePool {
-    fn get_connection(&self) -> Result<FtlDatabase, shaku::Error> {
+    fn get_connection(&self) -> Result<FtlDatabase, util::Error> {
         self.pool
             .get()
             .map(FtlDatabase)
-            .map_err(|e| shaku::Error::ResolveError(e.to_string()))
+            .context(ErrorKind::FtlDatabase)
+            .map_err(util::Error::from)
     }
 }
 
@@ -63,10 +67,10 @@ impl Deref for FtlDatabase {
 impl<M: Module + HasComponent<dyn DatabaseService<FtlDatabase>>> Provider<M> for FtlDatabase {
     type Interface = Self;
 
-    fn provide(container: &Container<M>) -> Result<Box<Self::Interface>, shaku::Error> {
+    fn provide(container: &Container<M>) -> Result<Box<Self::Interface>, Box<dyn Error + 'static>> {
         let pool: &dyn DatabaseService<FtlDatabase> = container.resolve_ref();
 
-        Ok(Box::new(pool.get_connection()?))
+        Ok(Box::new(pool.get_connection().map_err(Fail::compat)?))
     }
 }
 

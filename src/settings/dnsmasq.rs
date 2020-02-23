@@ -153,6 +153,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
             .context(ErrorKind::DnsmasqConfigWrite)?;
     }
 
+    #[allow(clippy::wildcard_in_or_patterns)]
     match SetupVarsEntry::DnsmasqListening.read(env)?.as_str() {
         "all" => config_file
             .write_all(b"except-interface=nonexisting\n")
@@ -160,7 +161,6 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
         "local" => config_file
             .write_all(b"local-service\n")
             .context(ErrorKind::DnsmasqConfigWrite)?,
-        #[allow(clippy::wildcard_in_or_patterns)]
         "single" | _ => {
             writeln!(
                 config_file,

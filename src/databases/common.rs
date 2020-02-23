@@ -17,16 +17,20 @@ use crate::{
 use shaku::Interface;
 
 #[cfg(test)]
-use crate::databases::custom_connection::{CustomSqliteConnection, CustomSqliteConnectionManager};
-#[cfg(test)]
-use diesel::{
-    connection::{Connection, TransactionManager},
-    r2d2::Pool,
-    SqliteConnection
+use {
+    crate::{
+        databases::custom_connection::{CustomSqliteConnection, CustomSqliteConnectionManager},
+        util::ErrorKind
+    },
+    diesel::{
+        connection::{Connection, TransactionManager},
+        r2d2::Pool,
+        SqliteConnection
+    }
 };
 
 pub trait DatabaseService<C>: Interface {
-    fn get_connection(&self) -> Result<C, shaku::Error>;
+    fn get_connection(&self) -> Result<C, Error>;
 }
 
 pub fn load_gravity_db_config(env: &Env) -> Result<CustomDBConfig, Error> {
@@ -75,9 +79,7 @@ pub fn create_memory_db(schema: &str, pool_size: u32) -> Pool<CustomSqliteConnec
 pub struct FakeDatabaseService;
 #[cfg(test)]
 impl<C> DatabaseService<C> for FakeDatabaseService {
-    fn get_connection(&self) -> Result<C, shaku::Error> {
-        Err(shaku::Error::ResolveError(
-            "Databases are disabled".to_string()
-        ))
+    fn get_connection(&self) -> Result<C, Error> {
+        Err(Error::from(ErrorKind::Unknown))
     }
 }

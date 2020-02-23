@@ -15,12 +15,14 @@ use crate::{
             CustomDBConfig, CustomSqliteConnection, CustomSqliteConnectionManager
         }
     },
-    settings::{ConfigEntry, FtlConfEntry}
+    settings::{ConfigEntry, FtlConfEntry},
+    util::{self, ErrorKind}
 };
 use diesel::{r2d2::Pool, SqliteConnection};
-use failure::_core::ops::Deref;
+use failure::{Fail, ResultExt};
 use rocket_contrib::databases::r2d2::PooledConnection;
 use shaku::{Component, Container, HasComponent, Module, Provider};
+use std::{error::Error, ops::Deref};
 
 fn default_connection() -> Pool<CustomSqliteConnectionManager> {
     let config = CustomDBConfig {
@@ -40,11 +42,12 @@ pub struct GravityDatabasePool {
 }
 
 impl DatabaseService<GravityDatabase> for GravityDatabasePool {
-    fn get_connection(&self) -> Result<GravityDatabase, shaku::Error> {
+    fn get_connection(&self) -> Result<GravityDatabase, util::Error> {
         self.pool
             .get()
             .map(GravityDatabase)
-            .map_err(|e| shaku::Error::ResolveError(e.to_string()))
+            .context(ErrorKind::GravityDatabase)
+            .map_err(Into::into)
     }
 }
 
@@ -63,9 +66,9 @@ impl<M: Module + HasComponent<dyn DatabaseService<GravityDatabase>>> Provider<M>
 {
     type Interface = Self;
 
-    fn provide(container: &Container<M>) -> Result<Box<Self::Interface>, shaku::Error> {
+    fn provide(container: &Container<M>) -> Result<Box<Self::Interface>, Box<dyn Error + 'static>> {
         let pool: &dyn DatabaseService<GravityDatabase> = container.resolve_ref();
 
-        Ok(Box::new(pool.get_connection()?))
+        Ok(Box::new(pool.get_connection().map_err(Fail::compat)?))
     }
 }
