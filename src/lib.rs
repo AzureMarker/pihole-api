@@ -10,8 +10,6 @@
 
 // Features Rocket requires
 #![feature(proc_macro_hygiene, decl_macro)]
-// Features we require
-#![feature(unsize)]
 #![allow(clippy::cast_lossless)]
 
 #[macro_use]
