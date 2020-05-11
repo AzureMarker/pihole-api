@@ -10,8 +10,12 @@
 
 use crate::{
     databases::{
-        ftl::{connect_to_ftl_test_db, FtlDatabase},
-        gravity::{connect_to_gravity_test_db, GravityDatabase},
+        create_memory_db,
+        ftl::{FtlDatabase, FtlDatabasePool, FtlDatabasePoolParameters, TEST_FTL_DATABASE_SCHEMA},
+        gravity::{
+            GravityDatabase, GravityDatabasePool, GravityDatabasePoolParameters,
+            TEST_GRAVITY_DATABASE_SCHEMA
+        },
         DatabaseService, FakeDatabaseService
     },
     env::{Config, Env, PiholeFile},
@@ -312,12 +316,12 @@ impl TestBuilder {
 
         if self.needs_database {
             self.container_builder
-                .with_provider_override::<GravityDatabase>(Box::new(|_| {
-                    Ok(connect_to_gravity_test_db())
-                }))
-                .with_provider_override::<FtlDatabase>(Box::new(|_| {
-                    Ok(Box::new(connect_to_ftl_test_db()))
-                }));
+                .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
+                    pool: create_memory_db(TEST_GRAVITY_DATABASE_SCHEMA, 1)
+                })
+                .with_component_parameters::<FtlDatabasePool>(FtlDatabasePoolParameters {
+                    pool: create_memory_db(TEST_FTL_DATABASE_SCHEMA, 1)
+                });
         } else {
             self.container_builder
                 .with_component_override::<dyn DatabaseService<GravityDatabase>>(Box::new(
