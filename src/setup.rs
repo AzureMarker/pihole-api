@@ -91,7 +91,7 @@ pub fn test(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    container: Container<PiholeModule>
+    container: Container<'static, PiholeModule>
 ) -> Rocket {
     setup(
         rocket::custom(
@@ -113,7 +113,7 @@ fn setup(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    container: Container<PiholeModule>
+    container: Container<'static, PiholeModule>
 ) -> Rocket {
     // Set up CORS
     let cors = CorsOptions {

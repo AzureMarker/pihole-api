@@ -19,7 +19,7 @@ use std::{
     os::unix::net::UnixStream
 };
 
-use shaku::{Component, ContainerBuildContext, Module};
+use shaku::{Component, Module, ModuleBuildContext};
 #[cfg(test)]
 use std::collections::HashMap;
 #[cfg(test)]
@@ -47,7 +47,7 @@ impl<M: Module> Component<M> for FtlConnectionType {
     type Interface = Self;
     type Parameters = FtlConnectionType;
 
-    fn build(_: &mut ContainerBuildContext<M>, connection: Self) -> Box<Self::Interface> {
+    fn build(_: &mut ModuleBuildContext<M>, connection: Self) -> Box<Self::Interface> {
         Box::new(connection)
     }
 }

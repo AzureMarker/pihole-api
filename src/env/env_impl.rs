@@ -22,7 +22,7 @@ use std::{
 
 #[cfg(test)]
 use failure::Fail;
-use shaku::{Component, ContainerBuildContext, Module};
+use shaku::{Component, Module, ModuleBuildContext};
 #[cfg(test)]
 use std::{
     collections::HashMap,
@@ -44,7 +44,7 @@ impl<M: Module> Component<M> for Env {
     type Interface = Self;
     type Parameters = Env;
 
-    fn build(_: &mut ContainerBuildContext<M>, env: Env) -> Box<Env> {
+    fn build(_: &mut ModuleBuildContext<M>, env: Env) -> Box<Env> {
         Box::new(env)
     }
 }
