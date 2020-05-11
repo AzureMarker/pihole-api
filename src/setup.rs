@@ -63,7 +63,7 @@ pub fn start() -> Result<(), Error> {
             pool: CustomSqliteConnection::pool(load_ftl_db_config(&env)?)
                 .context(ErrorKind::FtlDatabase)?
         })
-        .with_component_parameters::<Env>(env.config().clone())
+        .with_component_parameters::<Env>(env.clone())
         .build();
 
     setup(

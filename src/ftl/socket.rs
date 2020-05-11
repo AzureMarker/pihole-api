@@ -45,10 +45,16 @@ pub enum FtlConnectionType {
 
 impl<M: Module> Component<M> for FtlConnectionType {
     type Interface = Self;
-    type Parameters = ();
+    type Parameters = FtlConnectionType;
 
-    fn build(_: &mut ContainerBuildContext<M>, _: Self::Parameters) -> Box<Self::Interface> {
-        Box::new(FtlConnectionType::Socket)
+    fn build(_: &mut ContainerBuildContext<M>, connection: Self) -> Box<Self::Interface> {
+        Box::new(connection)
+    }
+}
+
+impl Default for FtlConnectionType {
+    fn default() -> Self {
+        FtlConnectionType::Socket
     }
 }
 

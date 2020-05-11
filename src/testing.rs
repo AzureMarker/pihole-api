@@ -311,8 +311,8 @@ impl TestBuilder {
 
         // Configure the container builder
         self.container_builder
-            .with_component_override(Box::new(env))
-            .with_component_override(Box::new(FtlConnectionType::Test(self.ftl_data)));
+            .with_component_parameters::<Env>(env)
+            .with_component_parameters::<FtlConnectionType>(FtlConnectionType::Test(self.ftl_data));
 
         if self.needs_database {
             self.container_builder

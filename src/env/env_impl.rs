@@ -42,10 +42,10 @@ pub enum Env {
 // TODO: make this less awkward?
 impl<M: Module> Component<M> for Env {
     type Interface = Self;
-    type Parameters = Config;
+    type Parameters = Env;
 
-    fn build(_: &mut ContainerBuildContext<M>, config: Config) -> Box<Env> {
-        Box::new(Env::Production(config))
+    fn build(_: &mut ContainerBuildContext<M>, env: Env) -> Box<Env> {
+        Box::new(env)
     }
 }
 
