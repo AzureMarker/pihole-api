@@ -329,7 +329,12 @@ impl TestBuilder {
         }
 
         // Configure the test server
-        let mut rocket = setup::test(self.ftl_memory, &config, api_key, self.container_builder);
+        let mut rocket = setup::test(
+            self.ftl_memory,
+            &config,
+            api_key,
+            self.container_builder.build()
+        );
 
         // Execute the Rocket hooks
         for hook in self.rocket_hooks {

@@ -31,7 +31,7 @@ use rocket::{
     Rocket
 };
 use rocket_cors::CorsOptions;
-use shaku::ContainerBuilder;
+use shaku::{Container, ContainerBuilder};
 
 #[cfg(test)]
 use rocket::config::LoggingLevel;
@@ -54,8 +54,7 @@ pub fn start() -> Result<(), Error> {
 
     println!("{:#?}", env.config());
 
-    let mut container_builder = ContainerBuilder::new();
-    container_builder
+    let container = ContainerBuilder::new()
         .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
             pool: CustomSqliteConnection::pool(load_gravity_db_config(&env)?)
                 .context(ErrorKind::GravityDatabase)?
@@ -64,7 +63,8 @@ pub fn start() -> Result<(), Error> {
             pool: CustomSqliteConnection::pool(load_ftl_db_config(&env)?)
                 .context(ErrorKind::FtlDatabase)?
         })
-        .with_component_parameters::<Env>(env.config().clone());
+        .with_component_parameters::<Env>(env.config().clone())
+        .build();
 
     setup(
         rocket::custom(
@@ -78,7 +78,7 @@ pub fn start() -> Result<(), Error> {
         FtlMemory::production(),
         env.config(),
         if key.is_empty() { None } else { Some(key) },
-        container_builder
+        container
     )
     .launch();
 
@@ -91,7 +91,7 @@ pub fn test(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    container_builder: ContainerBuilder<PiholeModule>
+    container: Container<PiholeModule>
 ) -> Rocket {
     setup(
         rocket::custom(
@@ -103,7 +103,7 @@ pub fn test(
         ftl_memory,
         &config,
         api_key,
-        container_builder
+        container
     )
 }
 
@@ -113,7 +113,7 @@ fn setup(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    mut container_builder: ContainerBuilder<PiholeModule>
+    container: Container<PiholeModule>
 ) -> Rocket {
     // Set up CORS
     let cors = CorsOptions {
@@ -150,9 +150,6 @@ fn setup(
 
     // Create a scheduler for scheduling work (ex. disable for 10 minutes)
     let scheduler = task_scheduler::Scheduler::new();
-
-    // Build the dependency injection container
-    let container = container_builder.build();
 
     // Set up the server
     server
