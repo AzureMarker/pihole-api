@@ -15,7 +15,7 @@ use crate::{
     util::{Error, ErrorKind}
 };
 use failure::ResultExt;
-use shaku::{ProvidedInterface, Provider};
+use shaku::Provider;
 use std::{
     process::{Command, Stdio},
     sync::Arc
@@ -24,7 +24,7 @@ use std::{
 /// Describes interactions with the Pi-hole domain lists (whitelist, blacklist,
 /// and regexlist)
 #[cfg_attr(test, mockall::automock)]
-pub trait ListService: ProvidedInterface {
+pub trait ListService {
     /// Add a domain to the list and update FTL and other lists accordingly.
     /// Example: when adding to the whitelist, remove from the blacklist.
     fn add(&self, list: List, domain: &str) -> Result<(), Error>;

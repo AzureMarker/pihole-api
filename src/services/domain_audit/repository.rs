@@ -14,11 +14,11 @@ use crate::{
 };
 use diesel::{expression::exists::exists, insert_into, prelude::*, select};
 use failure::ResultExt;
-use shaku::{ProvidedInterface, Provider};
+use shaku::Provider;
 
 /// Describes interactions with the domain audit data store
 #[cfg_attr(test, mockall::automock)]
-pub trait DomainAuditRepository: ProvidedInterface {
+pub trait DomainAuditRepository {
     /// Check if the domain is contained in the audit table
     fn contains(&self, domain: &str) -> Result<bool, Error>;
 

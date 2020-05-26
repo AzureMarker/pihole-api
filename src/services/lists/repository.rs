@@ -15,11 +15,11 @@ use crate::{
 };
 use diesel::{delete, dsl::exists, insert_into, prelude::*, select};
 use failure::ResultExt;
-use shaku::{ProvidedInterface, Provider};
+use shaku::Provider;
 
 /// Describes interactions with the list data store
 #[cfg_attr(test, mockall::automock)]
-pub trait ListRepository: ProvidedInterface {
+pub trait ListRepository {
     /// Get all of the domains in the list
     fn get(&self, list: List) -> Result<Vec<String>, Error>;
 

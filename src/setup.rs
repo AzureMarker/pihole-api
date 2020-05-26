@@ -31,7 +31,6 @@ use rocket::{
     Rocket
 };
 use rocket_cors::CorsOptions;
-use shaku::{Container, ContainerBuilder};
 
 #[cfg(test)]
 use rocket::config::LoggingLevel;
@@ -54,7 +53,7 @@ pub fn start() -> Result<(), Error> {
 
     println!("{:#?}", env.config());
 
-    let container = ContainerBuilder::new()
+    let module = PiholeModule::builder()
         .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
             pool: CustomSqliteConnection::pool(load_gravity_db_config(&env)?)
                 .context(ErrorKind::GravityDatabase)?
@@ -78,7 +77,7 @@ pub fn start() -> Result<(), Error> {
         FtlMemory::production(),
         env.config(),
         if key.is_empty() { None } else { Some(key) },
-        container
+        module
     )
     .launch();
 
@@ -91,7 +90,7 @@ pub fn test(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    container: Container<'static, PiholeModule>
+    module: PiholeModule
 ) -> Rocket {
     setup(
         rocket::custom(
@@ -103,7 +102,7 @@ pub fn test(
         ftl_memory,
         &config,
         api_key,
-        container
+        module
     )
 }
 
@@ -113,7 +112,7 @@ fn setup(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    container: Container<'static, PiholeModule>
+    module: PiholeModule
 ) -> Rocket {
     // Set up CORS
     let cors = CorsOptions {
@@ -163,8 +162,8 @@ fn setup(
         .manage(AuthData::new(api_key))
         // Manage the scheduler
         .manage(scheduler)
-        // Manage the dependency injection container
-        .manage(container)
+        // Manage the dependency injection module
+        .manage(module)
         // Mount the API
         .mount(&api_mount_path_str, routes![
             version::version,

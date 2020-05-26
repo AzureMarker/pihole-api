@@ -28,9 +28,7 @@ use rocket::{
     local::Client,
     Rocket
 };
-use shaku::{
-    ContainerBuilder, HasComponent, HasProvider, Interface, ProvidedInterface, ProviderFn
-};
+use shaku::{HasComponent, HasProvider, Interface, ModuleBuilder, ProviderFn};
 use std::{
     collections::HashMap,
     fs::File,
@@ -165,7 +163,7 @@ pub struct TestBuilder {
     expected_json: serde_json::Value,
     expected_status: Status,
     needs_database: bool,
-    container_builder: ContainerBuilder<PiholeModule>,
+    module_builder: ModuleBuilder<PiholeModule>,
     rocket_hooks: Vec<Box<dyn FnOnce(Rocket) -> Rocket>>
 }
 
@@ -197,7 +195,7 @@ impl TestBuilder {
             .into(),
             expected_status: Status::Ok,
             needs_database: false,
-            container_builder: ContainerBuilder::new(),
+            module_builder: PiholeModule::builder(),
             rocket_hooks: Vec::new()
         }
     }
@@ -282,18 +280,18 @@ impl TestBuilder {
     where
         PiholeModule: HasComponent<I>
     {
-        self.container_builder.with_component_override(component);
+        self.module_builder = self.module_builder.with_component_override(component);
         self
     }
 
-    pub fn mock_provider<I: ProvidedInterface + ?Sized>(
+    pub fn mock_provider<I: ?Sized + 'static>(
         mut self,
         provider_fn: ProviderFn<PiholeModule, I>
     ) -> Self
     where
         PiholeModule: HasProvider<I>
     {
-        self.container_builder.with_provider_override(provider_fn);
+        self.module_builder = self.module_builder.with_provider_override(provider_fn);
         self
     }
 
@@ -309,35 +307,38 @@ impl TestBuilder {
         let env = self.test_env_builder.build();
         let config = env.config().clone();
 
-        // Configure the container builder
-        self.container_builder
+        // Configure the module
+        self.module_builder = self
+            .module_builder
             .with_component_parameters::<Env>(env)
-            .with_component_parameters::<FtlConnectionType>(FtlConnectionType::Test(self.ftl_data));
+            .with_component_parameters::<FtlConnectionType>(
+            FtlConnectionType::Test(self.ftl_data)
+        );
 
-        if self.needs_database {
-            self.container_builder
+        self.module_builder = if self.needs_database {
+            self.module_builder
                 .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
                     pool: create_memory_db(TEST_GRAVITY_DATABASE_SCHEMA, 1)
                 })
                 .with_component_parameters::<FtlDatabasePool>(FtlDatabasePoolParameters {
                     pool: create_memory_db(TEST_FTL_DATABASE_SCHEMA, 1)
-                });
+                })
         } else {
-            self.container_builder
+            self.module_builder
                 .with_component_override::<dyn DatabaseService<GravityDatabase>>(Box::new(
                     FakeDatabaseService
                 ))
                 .with_component_override::<dyn DatabaseService<FtlDatabase>>(Box::new(
                     FakeDatabaseService
-                ));
-        }
+                ))
+        };
 
         // Configure the test server
         let mut rocket = setup::test(
             self.ftl_memory,
             &config,
             api_key,
-            self.container_builder.build()
+            self.module_builder.build()
         );
 
         // Execute the Rocket hooks

@@ -24,7 +24,7 @@ use crate::{
 use diesel::SqliteConnection;
 use failure::{Fail, ResultExt};
 use rocket_contrib::databases::r2d2::{Pool, PooledConnection};
-use shaku::{Component, Container, HasComponent, Module, Provider};
+use shaku::{Component, HasComponent, Module, Provider};
 use std::{error::Error, ops::Deref};
 
 fn default_connection() -> Pool<CustomSqliteConnectionManager> {
@@ -67,8 +67,8 @@ impl Deref for FtlDatabase {
 impl<M: Module + HasComponent<dyn DatabaseService<FtlDatabase>>> Provider<M> for FtlDatabase {
     type Interface = Self;
 
-    fn provide(container: &Container<M>) -> Result<Box<Self::Interface>, Box<dyn Error + 'static>> {
-        let pool: &dyn DatabaseService<FtlDatabase> = container.resolve_ref();
+    fn provide(module: &M) -> Result<Box<Self::Interface>, Box<dyn Error + 'static>> {
+        let pool: &dyn DatabaseService<FtlDatabase> = module.resolve_ref();
 
         Ok(Box::new(pool.get_connection().map_err(Fail::compat)?))
     }
