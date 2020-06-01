@@ -674,7 +674,7 @@ dependencies = [
  "serde 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.98 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
- "shaku 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shaku 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "shaku_rocket 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "shmem 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1048,16 +1048,16 @@ dependencies = [
 
 [[package]]
 name = "shaku"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "anymap 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "shaku_derive 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shaku_derive 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "shaku_derive"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "proc-macro2 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1071,7 +1071,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "rocket 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "shaku 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shaku 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1552,8 +1552,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum serde 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)" = "fec2851eb56d010dc9a21b89ca53ee75e6528bab60c11e89d38390904982da9f"
 "checksum serde_derive 1.0.98 (registry+https://github.com/rust-lang/crates.io-index)" = "01e69e1b8a631f245467ee275b8c757b818653c6d704cdbcaeb56b56767b529c"
 "checksum serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)" = "051c49229f282f7c6f3813f8286cc1e3323e8051823fce42c7ea80fe13521704"
-"checksum shaku 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "95fe96e02be1fc6febbd04092382345d089bebed177635736fcdced1611f6d45"
-"checksum shaku_derive 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "44846d3b7e53695b77557000c93175f93313b5006a9ee969f1cc549ee6d29c8a"
+"checksum shaku 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "065dc1468565e8b12973240896ab4504923976e2b61530e86f52a9c83fe38c8d"
+"checksum shaku_derive 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f9e298b87f021474ced2baf874b8104b1cfa64a3edb03024cbd05318d42b7f83"
 "checksum shaku_rocket 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cab938c510e5c0475b20ad57138fbe8c63f82da8171815be7a524179318a7314"
 "checksum shmem 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "92187fcc34494587eb50ea9542f8146d6d893fc83d3f743a8bf00cd5998e1734"
 "checksum slab 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"

@@ -36,7 +36,7 @@ nix = "0.14"
 base64 = "0.10"
 task_scheduler = "0.2.0"
 structopt = "0.2.18"
-shaku = "0.4.0"
+shaku = "0.4.1"
 shaku_rocket = "0.4.0"
 
 # Statically link SQLite (use the crate version provided by Diesel)
