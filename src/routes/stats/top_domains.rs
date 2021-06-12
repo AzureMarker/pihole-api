@@ -19,25 +19,22 @@ use crate::{
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
     util::{reply_result, Error, Reply}
 };
-use rocket::{request::Form, State};
+use rocket::State;
 use shaku_rocket::{Inject, InjectProvided};
 use std::{collections::HashSet, iter::FromIterator};
+
+pub use top_domains as route;
 
 /// Return the top domains
 #[get("/stats/top_domains?<params..>")]
 pub fn top_domains(
     _auth: User,
-    ftl_memory: State<FtlMemory>,
+    ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
-    params: Form<TopDomainParams>,
+    params: TopDomainParams,
     domain_audit: InjectProvided<PiholeModule, dyn DomainAuditRepository>
 ) -> Reply {
-    reply_result(get_top_domains(
-        &ftl_memory,
-        &env,
-        params.into_inner(),
-        &*domain_audit
-    ))
+    reply_result(get_top_domains(ftl_memory, &env, params, &*domain_audit))
 }
 
 /// Represents the possible GET parameters for top (blocked) domains requests
@@ -146,7 +143,7 @@ fn get_top_domains(
 
     // Take into account the limit
     if limit < domains.len() {
-        domains.split_off(limit);
+        domains.truncate(limit);
     }
 
     // Map the domains into the output format

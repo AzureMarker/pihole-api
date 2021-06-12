@@ -20,6 +20,8 @@ use failure::ResultExt;
 use shaku_rocket::InjectProvided;
 use std::collections::HashMap;
 
+pub use over_time_history_db as route;
+
 /// Get the query history over time from the database
 /// (separated into blocked and not blocked)
 #[get("/stats/database/overTime/history?<from>&<until>&<interval>")]

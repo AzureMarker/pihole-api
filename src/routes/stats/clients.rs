@@ -19,18 +19,20 @@ use crate::{
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_result, Error, Reply}
 };
-use rocket::{request::Form, State};
+use rocket::State;
 use shaku_rocket::Inject;
+
+pub use clients as route;
 
 /// Get client information
 #[get("/stats/clients?<params..>")]
 pub fn clients(
     _auth: User,
-    ftl_memory: State<FtlMemory>,
+    ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
-    params: Form<ClientParams>
+    params: ClientParams
 ) -> Reply {
-    reply_result(get_clients(&ftl_memory, &env, params.into_inner()))
+    reply_result(get_clients(ftl_memory, &env, params))
 }
 
 /// The possible GET parameters for `/stats/clients`

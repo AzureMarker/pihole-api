@@ -8,8 +8,6 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-// Features Rocket requires
-#![feature(proc_macro_hygiene, decl_macro)]
 #![allow(clippy::cast_lossless)]
 
 #[macro_use]
@@ -19,7 +17,7 @@ extern crate rocket;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
-extern crate rocket_contrib;
+extern crate serde_json;
 #[macro_use]
 extern crate rust_embed;
 

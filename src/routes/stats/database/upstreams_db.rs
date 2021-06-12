@@ -14,7 +14,7 @@ use crate::{
     routes::{
         auth::User,
         stats::{
-            database::{get_blocked_query_count, get_query_status_count},
+            database::summary_db::{get_blocked_query_count, get_query_status_count},
             upstreams::{UpstreamItemReply, UpstreamsReply}
         }
     },
@@ -25,6 +25,8 @@ use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
 use shaku_rocket::InjectProvided;
 use std::collections::HashMap;
+
+pub use upstreams_db as route;
 
 /// Get upstream data from the database
 #[get("/stats/database/upstreams?<from>&<until>")]
@@ -74,17 +76,13 @@ fn upstreams_db_impl(
     let mut upstream_counts: Vec<UpstreamItemReply> = upstream_counts
         .into_iter()
         .filter_map(|(ip, count)| {
-            if let Some(ip) = ip {
-                Some(UpstreamItemReply {
-                    name: "".to_owned(),
-                    ip,
-                    count: count as usize
-                })
-            } else {
-                // Ignore the blocked and cached queries. These have already
-                // been added above
-                None
-            }
+            // Ignore the blocked and cached queries. These have already
+            // been added above
+            ip.map(|ip| UpstreamItemReply {
+                name: "".to_owned(),
+                ip,
+                count: count as usize
+            })
         })
         .collect();
 
@@ -96,8 +94,8 @@ fn upstreams_db_impl(
 
     Ok(UpstreamsReply {
         upstreams,
-        total_queries,
-        forwarded_queries
+        forwarded_queries,
+        total_queries
     })
 }
 

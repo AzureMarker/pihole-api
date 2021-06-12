@@ -11,9 +11,9 @@
 mod common;
 mod dhcp;
 mod dns;
-mod get_ftl;
-mod get_ftldb;
-mod get_network;
+mod ftl;
+mod ftldb;
+mod network;
 mod web;
 
-pub use self::{common::*, dhcp::*, dns::*, get_ftl::*, get_ftldb::*, get_network::*, web::*};
+pub use self::{common::*, dhcp::*, dns::*, ftl::*, ftldb::*, network::*, web::*};

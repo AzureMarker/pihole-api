@@ -16,7 +16,7 @@ use crate::{
     },
     util::{reply_success, Reply}
 };
-use rocket_contrib::json::Json;
+use rocket::serde::json::Json;
 use shaku_rocket::InjectProvided;
 
 /// Represents an API input containing a domain

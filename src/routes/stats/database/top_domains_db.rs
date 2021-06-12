@@ -15,12 +15,14 @@ use crate::{
     routes::{
         auth::User,
         stats::{
-            check_privacy_level_top_domains, check_query_log_show_top_domains,
             common::{get_excluded_domains, HIDDEN_DOMAIN},
             database::{
                 query_types_db::get_query_type_counts, summary_db::get_blocked_query_count
             },
-            top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply}
+            top_domains::{
+                check_privacy_level_top_domains, check_query_log_show_top_domains,
+                TopDomainItemReply, TopDomainParams, TopDomainsReply
+            }
         }
     },
     services::{domain_audit::DomainAuditRepository, PiholeModule},
@@ -28,8 +30,9 @@ use crate::{
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
-use rocket::request::Form;
 use shaku_rocket::{Inject, InjectProvided};
+
+pub use top_domains_db as route;
 
 /// Return the top domains
 #[get("/stats/database/top_domains?<from>&<until>&<params..>")]
@@ -39,7 +42,7 @@ pub fn top_domains_db(
     db: InjectProvided<PiholeModule, FtlDatabase>,
     from: u64,
     until: u64,
-    params: Form<TopDomainParams>,
+    params: TopDomainParams,
     domain_audit: InjectProvided<PiholeModule, dyn DomainAuditRepository>
 ) -> Reply {
     reply_result(top_domains_db_impl(
@@ -47,7 +50,7 @@ pub fn top_domains_db(
         &db as &SqliteConnection,
         from,
         until,
-        params.into_inner(),
+        params,
         &*domain_audit
     ))
 }

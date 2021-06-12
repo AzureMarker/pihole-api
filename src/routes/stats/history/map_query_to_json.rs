@@ -12,7 +12,7 @@ use crate::{
     ftl::{FtlMemory, FtlQuery, ShmLockGuard},
     routes::stats::{
         common::{HIDDEN_CLIENT, HIDDEN_DOMAIN},
-        QueryReply
+        history::QueryReply
     },
     settings::FtlPrivacyLevel,
     util::Error
@@ -73,8 +73,8 @@ mod test {
     use super::map_query_to_json;
     use crate::{
         ftl::ShmLockGuard,
-        routes::stats::{
-            history::testing::{test_memory, test_queries},
+        routes::stats::history::{
+            testing::{test_memory, test_queries},
             QueryReply
         },
         settings::FtlPrivacyLevel

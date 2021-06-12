@@ -13,27 +13,24 @@ use crate::{
         custom_connection::CustomSqliteConnection,
         ftl::{FtlDatabasePool, FtlDatabasePoolParameters},
         gravity::{GravityDatabasePool, GravityDatabasePoolParameters},
-        load_ftl_db_config, load_gravity_db_config
+        load_ftl_db_config, load_gravity_db_config,
     },
     env::{Config, Env},
     ftl::FtlMemory,
     routes::{
         auth::{self, AuthData},
-        dns, settings, stats, version, web
+        dns, settings, stats, version, web,
     },
     services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::ResultExt;
-use rocket::{
-    config::{ConfigBuilder, Environment},
-    Rocket
-};
+use rocket::{Build, Rocket};
 use rocket_cors::CorsOptions;
 
 #[cfg(test)]
-use rocket::config::LoggingLevel;
+use rocket::config::LogLevel;
 
 #[catch(404)]
 fn not_found() -> Error {
@@ -46,7 +43,7 @@ fn unauthorized() -> Error {
 }
 
 /// Run the API normally (connect to FTL over the socket)
-pub fn start() -> Result<(), Error> {
+pub async fn start() -> Result<(), Error> {
     let config = Config::load()?;
     let env = Env::Production(config);
     let key = SetupVarsEntry::WebPassword.read(&env)?;
@@ -56,30 +53,30 @@ pub fn start() -> Result<(), Error> {
     let module = PiholeModule::builder()
         .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
             pool: CustomSqliteConnection::pool(load_gravity_db_config(&env)?)
-                .context(ErrorKind::GravityDatabase)?
+                .context(ErrorKind::GravityDatabase)?,
         })
         .with_component_parameters::<FtlDatabasePool>(FtlDatabasePoolParameters {
             pool: CustomSqliteConnection::pool(load_ftl_db_config(&env)?)
-                .context(ErrorKind::FtlDatabase)?
+                .context(ErrorKind::FtlDatabase)?,
         })
         .with_component_parameters::<Env>(env.clone())
         .build();
 
     setup(
-        rocket::custom(
-            ConfigBuilder::new(Environment::Production)
-                .address(env.config().general.address.as_str())
-                .port(env.config().general.port as u16)
-                .log_level(env.config().general.log_level)
-                .finalize()
-                .unwrap()
-        ),
+        rocket::custom(rocket::Config {
+            address: env.config().general.address.parse().unwrap(),
+            port: env.config().general.port as u16,
+            log_level: env.config().general.log_level,
+            ..Default::default()
+        }),
         FtlMemory::production(),
         env.config(),
         if key.is_empty() { None } else { Some(key) },
-        module
+        module,
     )
-    .launch();
+    .launch()
+    .await
+    .context(ErrorKind::Unknown)?;
 
     Ok(())
 }
@@ -90,30 +87,28 @@ pub fn test(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    module: PiholeModule
-) -> Rocket {
+    module: PiholeModule,
+) -> Rocket<Build> {
     setup(
-        rocket::custom(
-            ConfigBuilder::new(Environment::Development)
-                .log_level(LoggingLevel::Debug)
-                .finalize()
-                .unwrap()
-        ),
+        rocket::custom(rocket::Config {
+            log_level: LogLevel::Debug,
+            ..rocket::Config::debug_default()
+        }),
         ftl_memory,
         &config,
         api_key,
-        module
+        module,
     )
 }
 
 /// General server setup
 fn setup(
-    server: Rocket,
+    server: Rocket<Build>,
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    module: PiholeModule
-) -> Rocket {
+    module: PiholeModule,
+) -> Rocket<Build> {
     // Set up CORS
     let cors = CorsOptions {
         allow_credentials: true,
@@ -135,8 +130,8 @@ fn setup(
 
         // Mount the web interface at the configured route
         server.mount(
-            &web_route,
-            routes![web::web_interface_index, web::web_interface]
+            web_route.as_ref(),
+            routes![web::web_interface_index, web::web_interface],
         )
     } else {
         server
@@ -155,7 +150,7 @@ fn setup(
         // Attach CORS handler
         .attach(cors)
         // Add custom error handlers
-        .register(catchers![not_found, unauthorized])
+        .register("/", catchers![not_found, unauthorized])
         // Manage the FTL shared memory configuration
         .manage(ftl_memory)
         // Manage the API key
@@ -163,33 +158,33 @@ fn setup(
         // Manage the scheduler
         .manage(scheduler)
         // Manage the dependency injection module
-        .manage(module)
+        .manage(Box::new(module))
         // Mount the API
-        .mount(&api_mount_path_str, routes![
+        .mount(api_mount_path_str.as_ref(), routes![
             version::version,
             auth::check,
             auth::logout,
-            stats::get_summary,
-            stats::top_domains,
-            stats::top_clients,
-            stats::upstreams,
-            stats::query_types,
-            stats::history,
-            stats::recent_blocked,
-            stats::clients,
-            stats::over_time_history,
-            stats::over_time_clients,
-            stats::database::get_summary_db,
-            stats::database::over_time_clients_db,
-            stats::database::over_time_history_db,
-            stats::database::query_types_db,
-            stats::database::top_clients_db,
-            stats::database::top_domains_db,
-            stats::database::upstreams_db,
+            stats::summary::get_summary,
+            stats::top_domains::route,
+            stats::top_clients::route,
+            stats::upstreams::route,
+            stats::query_types::route,
+            stats::history::route,
+            stats::recent_blocked::route,
+            stats::clients::route,
+            stats::over_time_history::route,
+            stats::over_time_clients::route,
+            stats::database::summary_db::get_summary_db,
+            stats::database::over_time_clients_db::route,
+            stats::database::over_time_history_db::route,
+            stats::database::query_types_db::route,
+            stats::database::top_clients_db::route,
+            stats::database::top_domains_db::route,
+            stats::database::upstreams_db::route,
             dns::get_whitelist,
             dns::get_blacklist,
             dns::get_regexlist,
-            dns::status,
+            dns::get_status,
             dns::change_status,
             dns::add_whitelist,
             dns::add_blacklist,

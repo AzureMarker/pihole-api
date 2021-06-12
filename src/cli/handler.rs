@@ -20,7 +20,7 @@ use structopt::StructOpt;
 
 /// Parse the CLI arguments and execute the command. If there are no commands,
 /// start the API.
-pub fn handle_cli() -> Result<(), Error> {
+pub async fn handle_cli() -> Result<(), Error> {
     // Parse the command line arguments
     let args: CliArgs = CliArgs::from_args();
 
@@ -34,7 +34,7 @@ pub fn handle_cli() -> Result<(), Error> {
             CliCommand::GenerateDnsConfig => generate_dnsmasq_cli()?
         },
         // No command given, start the API
-        None => start()?
+        None => start().await?
     }
 
     Ok(())

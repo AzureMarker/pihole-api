@@ -15,10 +15,12 @@ use crate::{
 };
 use rocket::State;
 
+pub use query_types as route;
+
 /// Get the query types
 #[get("/stats/query_types")]
-pub fn query_types(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
-    reply_result(query_types_impl(&ftl_memory))
+pub fn query_types(_auth: User, ftl_memory: &State<FtlMemory>) -> Reply {
+    reply_result(query_types_impl(ftl_memory))
 }
 
 /// Get the query types

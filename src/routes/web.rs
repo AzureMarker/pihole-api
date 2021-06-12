@@ -9,19 +9,18 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{env::Env, services::PiholeModule};
-use rocket::{
-    http::ContentType,
-    response::{Redirect, Response}
-};
+use rocket::{http::ContentType, response::Redirect};
 use shaku_rocket::Inject;
-use std::{borrow::Cow, io::Cursor, path::PathBuf};
+use std::{borrow::Cow, path::PathBuf};
+
+type FileResponse = (ContentType, Cow<'static, [u8]>);
 
 #[derive(RustEmbed)]
 #[folder = "web/"]
 pub struct WebAssets;
 
 /// Get a file from the embedded web assets
-fn get_file<'r>(filename: &str, env: &Env) -> Option<Response<'r>> {
+fn get_file(filename: &str, env: &Env) -> Option<FileResponse> {
     // The default is index.html, and it requires special handling
     if filename.is_empty() || filename == "index.html" {
         return get_index_response(env);
@@ -41,7 +40,7 @@ fn get_file<'r>(filename: &str, env: &Env) -> Option<Response<'r>> {
     // Get the file from the assets
     match WebAssets::get(filename) {
         // The file was found, so build the response
-        Some(data) => Some(build_response(data, content_type)),
+        Some(data) => Some((content_type, data)),
         // If the file was not found, and there is no extension on the filename,
         // fall back to the web interface index.html
         None => {
@@ -54,17 +53,9 @@ fn get_file<'r>(filename: &str, env: &Env) -> Option<Response<'r>> {
     }
 }
 
-/// Build a `Response` from raw data and its content type
-fn build_response<'r>(data: Cow<'static, [u8]>, content_type: ContentType) -> Response<'r> {
-    Response::build()
-        .header(content_type)
-        .sized_body(Cursor::new(data))
-        .finalize()
-}
-
 /// Get index.html and build a response for it
-fn get_index_response<'r>(env: &Env) -> Option<Response<'r>> {
-    get_index_html(env).map(|data| build_response(data, ContentType::HTML))
+fn get_index_response(env: &Env) -> Option<FileResponse> {
+    get_index_html(env).map(|data| (ContentType::HTML, data))
 }
 
 /// Get index.html and inject a `<base>` element into the `<head>` element.
@@ -109,13 +100,13 @@ pub fn web_interface_redirect(env: Inject<PiholeModule, Env>) -> Redirect {
 /// Return the index page of the web interface. This handler is mounted on a
 /// route taken from the config, such as `/admin`, so it must use `/`.
 #[get("/")]
-pub fn web_interface_index<'r>(env: Inject<PiholeModule, Env>) -> Option<Response<'r>> {
+pub fn web_interface_index(env: Inject<PiholeModule, Env>) -> Option<FileResponse> {
     get_index_response(&env)
 }
 
 /// Return the requested page/file, if it exists. This handler is mounted on a
 /// route taken from the config, such as `/admin`, so it must use `/`.
 #[get("/<path..>")]
-pub fn web_interface<'r>(path: PathBuf, env: Inject<PiholeModule, Env>) -> Option<Response<'r>> {
+pub fn web_interface(path: PathBuf, env: Inject<PiholeModule, Env>) -> Option<FileResponse> {
     get_file(&path.display().to_string(), &env)
 }

@@ -15,7 +15,7 @@ use crate::{
     settings::{ConfigEntry, SetupVarsEntry},
     util::{reply_data, reply_success, Error, ErrorKind, Reply}
 };
-use rocket_contrib::json::Json;
+use rocket::serde::json::Json;
 use shaku_rocket::Inject;
 
 /// Get web interface settings

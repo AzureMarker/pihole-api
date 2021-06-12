@@ -15,7 +15,7 @@ use crate::{
     settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry, ValueType},
     util::{reply_data, reply_success, Error, ErrorKind, Reply}
 };
-use rocket_contrib::json::Json;
+use rocket::serde::json::Json;
 use shaku_rocket::Inject;
 
 #[derive(Serialize, Deserialize)]

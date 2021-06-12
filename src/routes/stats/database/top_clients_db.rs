@@ -15,10 +15,14 @@ use crate::{
     routes::{
         auth::User,
         stats::{
-            check_privacy_level_top_clients,
             common::{get_excluded_clients, HIDDEN_CLIENT},
-            database::{get_blocked_query_count, get_query_type_counts},
-            top_clients::{TopClientItemReply, TopClientParams, TopClientsReply}
+            database::{
+                query_types_db::get_query_type_counts, summary_db::get_blocked_query_count
+            },
+            top_clients::{
+                check_privacy_level_top_clients, TopClientItemReply, TopClientParams,
+                TopClientsReply
+            }
         }
     },
     services::PiholeModule,
@@ -27,8 +31,9 @@ use crate::{
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
-use rocket::request::Form;
 use shaku_rocket::{Inject, InjectProvided};
+
+pub use top_clients_db as route;
 
 /// Get the top clients
 #[get("/stats/database/top_clients?<from>&<until>&<params..>")]
@@ -38,14 +43,14 @@ pub fn top_clients_db(
     db: InjectProvided<PiholeModule, FtlDatabase>,
     from: u64,
     until: u64,
-    params: Form<TopClientParams>
+    params: TopClientParams
 ) -> Reply {
     reply_result(top_clients_db_impl(
         &env,
         &db as &SqliteConnection,
         from,
         until,
-        params.into_inner()
+        params
     ))
 }
 

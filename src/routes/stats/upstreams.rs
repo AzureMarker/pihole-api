@@ -15,9 +15,11 @@ use crate::{
 };
 use rocket::State;
 
+pub use upstreams as route;
+
 /// Get the upstreams
 #[get("/stats/upstreams")]
-pub fn upstreams(_auth: User, ftl_memory: State<FtlMemory>) -> Reply {
+pub fn upstreams(_auth: User, ftl_memory: &State<FtlMemory>) -> Reply {
     let lock = ftl_memory.lock()?;
     let ftl_upstreams = ftl_memory.upstreams(&lock)?;
     let strings = ftl_memory.strings(&lock)?;

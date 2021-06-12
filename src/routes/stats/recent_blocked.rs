@@ -16,18 +16,20 @@ use crate::{
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_data, Reply}
 };
-use rocket::{request::Form, State};
+use rocket::State;
 use shaku_rocket::Inject;
+
+pub use recent_blocked as route;
 
 /// Get the `num` most recently blocked domains
 #[get("/stats/recent_blocked?<params..>")]
 pub fn recent_blocked(
     _auth: User,
-    ftl_memory: State<FtlMemory>,
+    ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
-    params: Form<RecentBlockedParams>
+    params: RecentBlockedParams
 ) -> Reply {
-    get_recent_blocked(&ftl_memory, &env, params.num.unwrap_or(1))
+    get_recent_blocked(ftl_memory, &env, params.num.unwrap_or(1))
 }
 
 /// Represents the possible GET parameters on `/stats/recent_blocked`

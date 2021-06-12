@@ -19,7 +19,7 @@ use shaku::Provider;
 
 /// Describes interactions with the list data store
 #[cfg_attr(test, mockall::automock)]
-pub trait ListRepository {
+pub trait ListRepository: Send {
     /// Get all of the domains in the list
     fn get(&self, list: List) -> Result<Vec<String>, Error>;
 

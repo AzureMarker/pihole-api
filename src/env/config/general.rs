@@ -8,7 +8,7 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use rocket::logger::LoggingLevel;
+use rocket::config::LogLevel;
 use serde::{Deserialize, Deserializer};
 use std::{net::Ipv4Addr, str::FromStr};
 
@@ -28,7 +28,7 @@ pub struct General {
         default = "default_log_level",
         deserialize_with = "deserialize_logging_level"
     )]
-    pub log_level: LoggingLevel
+    pub log_level: LogLevel
 }
 
 impl Default for General {
@@ -50,12 +50,12 @@ impl General {
 /// Deserialize a logging level. `LoggingLevel` does not implement
 /// `Deserialize`, so this must be plugged in via an attribute on the log level
 /// field.
-fn deserialize_logging_level<'de, D>(deserializer: D) -> Result<LoggingLevel, D::Error>
+fn deserialize_logging_level<'de, D>(deserializer: D) -> Result<LogLevel, D::Error>
 where
     D: Deserializer<'de>
 {
     let level_str = String::deserialize(deserializer)?;
-    LoggingLevel::from_str(&level_str).map_err(serde::de::Error::custom)
+    LogLevel::from_str(&level_str).map_err(serde::de::Error::custom)
 }
 
 fn default_address() -> String {
@@ -66,8 +66,8 @@ fn default_port() -> usize {
     80
 }
 
-fn default_log_level() -> LoggingLevel {
-    LoggingLevel::Critical
+fn default_log_level() -> LogLevel {
+    LogLevel::Critical
 }
 
 #[cfg(test)]

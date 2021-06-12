@@ -20,6 +20,8 @@ use failure::ResultExt;
 use shaku_rocket::InjectProvided;
 use std::collections::HashMap;
 
+pub use query_types_db as route;
+
 /// Get query type counts from the database
 #[get("/stats/database/query_types?<from>&<until>")]
 pub fn query_types_db(

@@ -20,7 +20,7 @@ use shaku_rocket::Inject;
 
 /// Get the summary data
 #[get("/stats/summary")]
-pub fn get_summary(ftl_memory: State<FtlMemory>, env: Inject<PiholeModule, Env>) -> Reply {
+pub fn get_summary(ftl_memory: &State<FtlMemory>, env: Inject<PiholeModule, Env>) -> Reply {
     let lock = ftl_memory.lock()?;
     let counters = ftl_memory.counters(&lock)?;
 

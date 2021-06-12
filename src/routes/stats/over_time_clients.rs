@@ -26,11 +26,13 @@ use rocket::State;
 use shaku_rocket::Inject;
 use std::cmp::Ordering;
 
+pub use over_time_clients as route;
+
 /// Get the client queries over time
 #[get("/stats/overTime/clients")]
 pub fn over_time_clients(
     _auth: User,
-    ftl_memory: State<FtlMemory>,
+    ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>
 ) -> Reply {
     // Check if client details are private
@@ -51,7 +53,7 @@ pub fn over_time_clients(
 
     // Filter out clients which should not be considered
     let clients = filter_ftl_clients(
-        &ftl_memory,
+        ftl_memory,
         &lock,
         &ftl_clients,
         &env,

@@ -13,7 +13,7 @@ use crate::{
     routes::auth::User,
     services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry},
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
 use shaku_rocket::Inject;
 
@@ -78,7 +78,7 @@ mod test {
                  PRIVACYLEVEL=2\n\
                  IGNORE_LOCALHOST=yes\n\
                  BLOCKINGMODE=NXDOMAIN\n\
-                 REGEX_DEBUGMODE=true\n"
+                 REGEX_DEBUGMODE=true\n",
             )
             .expect_json(json!({
                 "socket_listening": "all",

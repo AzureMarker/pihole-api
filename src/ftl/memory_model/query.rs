@@ -9,7 +9,10 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{ftl::FtlQueryType, settings::FtlPrivacyLevel};
-use rocket::{http::RawStr, request::FromFormValue};
+use rocket::{
+    form,
+    form::{FromFormField, ValueField}
+};
 
 /// A list of query statuses which mark a query as blocked
 pub const BLOCKED_STATUSES: [i32; 6] = [
@@ -86,16 +89,19 @@ impl FtlQueryStatus {
     }
 }
 
-impl<'v> FromFormValue<'v> for FtlQueryStatus {
-    type Error = &'v RawStr;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
-        let num = form_value.parse::<u8>().map_err(|_| form_value)?;
-        Self::from_number(num as isize).ok_or(form_value)
+impl<'v> FromFormField<'v> for FtlQueryStatus {
+    fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
+        let num = field
+            .value
+            .parse::<u8>()
+            .map_err(|_| form::Error::validation("Not a number"))?;
+        Self::from_number(num as isize)
+            .ok_or_else(|| form::Error::validation("Unknown FTL query status").into())
     }
 }
 
 /// The reply types an FTL query can have
+#[allow(clippy::upper_case_acronyms)]
 #[repr(u8)]
 #[cfg_attr(test, derive(Debug))]
 #[derive(Copy, Clone, PartialEq)]
@@ -133,12 +139,14 @@ impl FtlQueryReplyType {
     }
 }
 
-impl<'v> FromFormValue<'v> for FtlQueryReplyType {
-    type Error = &'v RawStr;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
-        let num = form_value.parse::<u8>().map_err(|_| form_value)?;
-        Self::from_number(num as isize).ok_or(form_value)
+impl<'v> FromFormField<'v> for FtlQueryReplyType {
+    fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
+        let num = field
+            .value
+            .parse::<u8>()
+            .map_err(|_| form::Error::validation("Not a number"))?;
+        Self::from_number(num as isize)
+            .ok_or_else(|| form::Error::validation("Unknown FTL query reply type").into())
     }
 }
 
@@ -170,11 +178,13 @@ impl FtlDnssecType {
     }
 }
 
-impl<'v> FromFormValue<'v> for FtlDnssecType {
-    type Error = &'v RawStr;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
-        let num = form_value.parse::<u8>().map_err(|_| form_value)?;
-        Self::from_number(num as isize).ok_or(form_value)
+impl<'v> FromFormField<'v> for FtlDnssecType {
+    fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
+        let num = field
+            .value
+            .parse::<u8>()
+            .map_err(|_| form::Error::validation("Not a number"))?;
+        Self::from_number(num as isize)
+            .ok_or_else(|| form::Error::validation("Unknown FTL DNSSEC type").into())
     }
 }

@@ -18,7 +18,7 @@ use crate::{
     databases::ftl::FtlDatabase,
     env::Env,
     ftl::{FtlMemory, FtlQuery},
-    routes::stats::{history::database::load_queries_from_database, HistoryReply, QueryReply},
+    routes::stats::history::{database::load_queries_from_database, HistoryReply, QueryReply},
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::Error
 };
@@ -195,12 +195,10 @@ mod test {
         databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         ftl::ShmLockGuard,
-        routes::stats::{
-            history::{
-                get_history::get_history,
-                map_query_to_json::map_query_to_json,
-                testing::{test_memory, test_queries}
-            },
+        routes::stats::history::{
+            get_history::get_history,
+            map_query_to_json::map_query_to_json,
+            testing::{test_memory, test_queries},
             HistoryParams, HistoryReply, QueryReply
         },
         testing::TestEnvBuilder

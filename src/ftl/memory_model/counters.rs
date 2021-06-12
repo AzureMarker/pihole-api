@@ -8,7 +8,10 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use rocket::{http::RawStr, request::FromFormValue};
+use rocket::{
+    form,
+    form::{FromFormField, ValueField}
+};
 
 /// The FTL counters stored in shared memory
 #[repr(C)]
@@ -46,6 +49,7 @@ impl FtlCounters {
 /// The query types stored by FTL. Use this enum for [`FtlCounters::query_type`]
 ///
 /// [`FtlCounters::query_type`]: struct.FtlCounters.html#method.query_type
+#[allow(clippy::upper_case_acronyms)]
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub enum FtlQueryType {
@@ -58,12 +62,15 @@ pub enum FtlQueryType {
     TXT
 }
 
-impl<'v> FromFormValue<'v> for FtlQueryType {
-    type Error = &'v RawStr;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<Self, Self::Error> {
-        let num = form_value.parse::<u8>().map_err(|_| form_value)?;
-        Self::from_number(num as isize).ok_or(form_value)
+#[rocket::async_trait]
+impl<'v> FromFormField<'v> for FtlQueryType {
+    fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
+        let num = field
+            .value
+            .parse::<u8>()
+            .map_err(|_| form::Error::validation("Not a number"))?;
+        Self::from_number(num as isize)
+            .ok_or_else(|| form::Error::validation("Unknown FTL query type").into())
     }
 }
 

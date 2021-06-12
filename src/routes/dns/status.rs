@@ -13,17 +13,16 @@ use crate::{
     routes::dns::common::reload_dns,
     services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{reply_data, reply_error, reply_success, Error, ErrorKind, Reply}
+    util::{reply_data, reply_error, reply_success, Error, ErrorKind, Reply},
 };
-use rocket::State;
-use rocket_contrib::json::Json;
+use rocket::{serde::json::Json, State};
 use shaku_rocket::Inject;
 use std::time::Duration;
 use task_scheduler::Scheduler;
 
 /// Get the DNS blocking status
 #[get("/dns/status")]
-pub fn status(env: Inject<PiholeModule, Env>) -> Reply {
+pub fn get_status(env: Inject<PiholeModule, Env>) -> Reply {
     let status = if SetupVarsEntry::BlockingEnabled.is_true(&env)? {
         "enabled"
     } else {
@@ -37,13 +36,13 @@ pub fn status(env: Inject<PiholeModule, Env>) -> Reply {
 #[post("/dns/status", data = "<data>")]
 pub fn change_status(
     env: Inject<PiholeModule, Env>,
-    scheduler: State<Scheduler>,
-    data: Json<ChangeStatus>
+    scheduler: &State<Scheduler>,
+    data: Json<ChangeStatus>,
 ) -> Reply {
     match (data.action.as_str(), data.time) {
         ("enable", None) => enable(&env)?,
-        ("disable", time) => disable(&env, time, Some(&scheduler))?,
-        _ => return reply_error(ErrorKind::BadRequest)
+        ("disable", time) => disable(&env, time, Some(scheduler))?,
+        _ => return reply_error(ErrorKind::BadRequest),
     }
 
     reply_success()
@@ -145,7 +144,7 @@ pub struct ChangeStatus {
 
     /// The number of seconds to wait before re-enabling. Should be None when
     /// the action is "enable".
-    time: Option<usize>
+    time: Option<usize>,
 }
 
 #[cfg(test)]
@@ -154,7 +153,7 @@ mod test {
     use crate::{
         env::PiholeFile,
         testing::{TestBuilder, TestEnvBuilder},
-        util::ErrorKind
+        util::ErrorKind,
     };
     use rocket::http::Method;
 
@@ -198,7 +197,7 @@ mod test {
             .file_expect(
                 PiholeFile::SetupVars,
                 "BLOCKING_ENABLED=false\n",
-                "BLOCKING_ENABLED=true\n"
+                "BLOCKING_ENABLED=true\n",
             )
             .file_expect(PiholeFile::Gravity, "", "127.0.0.1 localhost")
             .file_expect(PiholeFile::GravityBackup, "127.0.0.1 localhost", "")
@@ -231,7 +230,7 @@ mod test {
             .file_expect(
                 PiholeFile::SetupVars,
                 "BLOCKING_ENABLED=true\n",
-                "BLOCKING_ENABLED=false\n"
+                "BLOCKING_ENABLED=false\n",
             )
             .file_expect(PiholeFile::Gravity, "127.0.0.1 localhost", "")
             .file_expect(PiholeFile::GravityBackup, "", "127.0.0.1 localhost")

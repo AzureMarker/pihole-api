@@ -57,7 +57,7 @@ impl Default for CustomDBConfig {
 impl CustomSqliteConnection {
     pub fn pool(
         config: CustomDBConfig
-    ) -> Result<Pool<CustomSqliteConnectionManager>, rocket_contrib::databases::r2d2::Error> {
+    ) -> Result<Pool<CustomSqliteConnectionManager>, rocket_sync_db_pools::r2d2::Error> {
         let manager = CustomSqliteConnectionManager {
             manager: ConnectionManager::new(&config.url),
             database_url: config.url

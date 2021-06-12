@@ -63,10 +63,7 @@ impl ValueType {
                     .iter()
                     .any(|value_type| value_type.is_valid(value))
             }),
-            ValueType::Boolean => match value {
-                "true" | "false" => true,
-                _ => false
-            },
+            ValueType::Boolean => matches!(value, "true" | "false"),
             ValueType::Decimal => {
                 // Numeric, at least one leading digit, optional decimal point and trailing
                 // digits.
@@ -184,10 +181,7 @@ impl ValueType {
                 }
             }
             ValueType::Regex => Regex::new(value).is_ok(),
-            ValueType::YesNo => match value {
-                "yes" | "no" => true,
-                _ => false
-            },
+            ValueType::YesNo => matches!(value, "yes" | "no"),
             ValueType::WebPassword => {
                 // Web password is a valid key, but altering it is disallowed
                 false

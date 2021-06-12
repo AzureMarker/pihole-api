@@ -15,9 +15,11 @@ use crate::{
 };
 use rocket::State;
 
+pub use over_time_history as route;
+
 /// Get the query history over time (separated into blocked and not blocked)
 #[get("/stats/overTime/history")]
-pub fn over_time_history(ftl_memory: State<FtlMemory>) -> Reply {
+pub fn over_time_history(ftl_memory: &State<FtlMemory>) -> Reply {
     let lock = ftl_memory.lock()?;
     let over_time = ftl_memory.over_time(&lock)?;
 

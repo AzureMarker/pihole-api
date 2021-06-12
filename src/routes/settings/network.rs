@@ -13,7 +13,7 @@ use crate::{
     routes::auth::User,
     services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
 use hostname::get_hostname;
 use shaku_rocket::Inject;
@@ -50,7 +50,7 @@ mod test {
                 PiholeFile::SetupVars,
                 "IPV4_ADDRESS=192.168.1.205/24\n\
                  IPV6_ADDRESS=fd06:fb62:d251:9033:0:0:0:33\n\
-                 PIHOLE_INTERFACE=eth0\n"
+                 PIHOLE_INTERFACE=eth0\n",
             )
             .expect_json(json!({
                 "interface": "eth0",
@@ -72,7 +72,7 @@ mod test {
                 PiholeFile::SetupVars,
                 "IPV4_ADDRESS=192.168.1.205/24\n\
                  IPV6_ADDRESS=\n\
-                 PIHOLE_INTERFACE=eth0\n"
+                 PIHOLE_INTERFACE=eth0\n",
             )
             .expect_json(json!({
                 "interface": "eth0",

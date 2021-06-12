@@ -15,7 +15,7 @@ use crate::{
     routes::{
         auth::User,
         stats::{
-            database::get_query_type_counts,
+            database::query_types_db::get_query_type_counts,
             summary::{ReplyTypes, Summary, TotalQueries}
         }
     },

@@ -10,9 +10,8 @@
 
 use crate::util::{reply_success, Error, ErrorKind, Reply};
 use rocket::{
-    http::{Cookie, Cookies},
-    request::{self, FromRequest, Request, State},
-    Outcome
+    http::{Cookie, CookieJar},
+    request::{self, FromRequest, Outcome, Request}
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -32,7 +31,7 @@ pub struct AuthData {
 
 impl User {
     /// Try to get the user ID from cookies
-    fn get_from_cookie(cookies: &mut Cookies) -> Option<Self> {
+    fn get_from_cookie(cookies: &CookieJar) -> Option<Self> {
         cookies
             .get_private(USER_ATTR)
             .and_then(|cookie| cookie.value().parse().ok())
@@ -55,36 +54,37 @@ impl User {
     }
 
     /// Log the user out by removing the cookie
-    fn logout(&self, mut cookies: Cookies) {
+    fn logout(&self, cookies: &CookieJar) {
         cookies.remove_private(Cookie::named(USER_ATTR));
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for User {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for User {
     type Error = Error;
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         // Check if the user has already authenticated and has a valid cookie
-        if let Some(user) = User::get_from_cookie(&mut request.cookies()) {
+        if let Some(user) = User::get_from_cookie(request.cookies()) {
             return Outcome::Success(user);
         }
 
         // Load the auth data
-        let auth_data: State<AuthData> = match request.guard().succeeded() {
+        let auth_data: &AuthData = match request.rocket().state() {
             Some(auth_data) => auth_data,
             None => return Error::from(ErrorKind::Unknown).into_outcome()
         };
 
         // Check if a key is required for authentication
         if !auth_data.key_required() {
-            return Outcome::Success(User::create_and_store_user(request, &auth_data));
+            return Outcome::Success(User::create_and_store_user(request, auth_data));
         }
 
         // Check the user's key, if provided
         if let Some(key) = request.headers().get_one(AUTH_HEADER) {
             if auth_data.key_matches(key) {
                 // The key matches, so create and store a new user and cookie
-                Outcome::Success(Self::create_and_store_user(request, &auth_data))
+                Outcome::Success(Self::create_and_store_user(request, auth_data))
             } else {
                 // The key does not match
                 Error::from(ErrorKind::Unauthorized).into_outcome()
@@ -136,7 +136,7 @@ pub fn check(_user: User) -> Reply {
 
 /// Clears the user's authentication
 #[delete("/auth")]
-pub fn logout(user: User, cookies: Cookies) -> Reply {
+pub fn logout(user: User, cookies: &CookieJar) -> Reply {
     user.logout(cookies);
     reply_success()
 }

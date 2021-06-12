@@ -20,7 +20,7 @@ use crate::{
 };
 use diesel::{r2d2::Pool, SqliteConnection};
 use failure::{Fail, ResultExt};
-use rocket_contrib::databases::r2d2::PooledConnection;
+use rocket_sync_db_pools::r2d2::PooledConnection;
 use shaku::{Component, HasComponent, Module, Provider};
 use std::{error::Error, ops::Deref};
 

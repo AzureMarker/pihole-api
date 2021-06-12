@@ -16,14 +16,14 @@ use crate::{
         DatabaseService
     },
     ftl::{FtlDnssecType, FtlQueryReplyType},
-    routes::stats::QueryReply,
+    routes::stats::history::QueryReply,
     settings::{ConfigEntry, FtlConfEntry},
     util,
     util::ErrorKind
 };
 use diesel::SqliteConnection;
 use failure::{Fail, ResultExt};
-use rocket_contrib::databases::r2d2::{Pool, PooledConnection};
+use rocket_sync_db_pools::r2d2::{Pool, PooledConnection};
 use shaku::{Component, HasComponent, Module, Provider};
 use std::{error::Error, ops::Deref};
 
@@ -99,14 +99,14 @@ pub struct FtlDbQuery {
     pub upstream: Option<String>
 }
 
-impl Into<QueryReply> for FtlDbQuery {
-    fn into(self) -> QueryReply {
+impl From<FtlDbQuery> for QueryReply {
+    fn from(query: FtlDbQuery) -> QueryReply {
         QueryReply {
-            timestamp: self.timestamp as u64,
-            r#type: self.query_type as u8,
-            status: self.status as u8,
-            domain: self.domain,
-            client: self.client,
+            timestamp: query.timestamp as u64,
+            r#type: query.query_type as u8,
+            status: query.status as u8,
+            domain: query.domain,
+            client: query.client,
             dnssec: FtlDnssecType::Unknown as u8,
             reply: FtlQueryReplyType::Unknown as u8,
             response_time: 0

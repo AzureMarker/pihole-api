@@ -10,8 +10,9 @@
 
 use std::process::exit;
 
-fn main() {
-    if let Err(e) = pihole_api::handle_cli() {
+#[rocket::main]
+async fn main() {
+    if let Err(e) = pihole_api::handle_cli().await {
         e.print_stacktrace();
         exit(1);
     }

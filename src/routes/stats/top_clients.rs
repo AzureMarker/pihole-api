@@ -19,18 +19,20 @@ use crate::{
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
     util::{reply_result, Error, Reply}
 };
-use rocket::{request::Form, State};
+use rocket::State;
 use shaku_rocket::Inject;
+
+pub use top_clients as route;
 
 /// Get the top clients
 #[get("/stats/top_clients?<params..>")]
 pub fn top_clients(
     _auth: User,
-    ftl_memory: State<FtlMemory>,
+    ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
-    params: Form<TopClientParams>
+    params: TopClientParams
 ) -> Reply {
-    reply_result(get_top_clients(&ftl_memory, &env, params.into_inner()))
+    reply_result(get_top_clients(ftl_memory, &env, params))
 }
 
 /// Represents the possible GET parameters on `/stats/top_clients`
@@ -122,7 +124,7 @@ fn get_top_clients(
 
     // Take into account the limit
     if limit < clients.len() {
-        clients.split_off(limit);
+        clients.truncate(limit);
     }
 
     // Map the clients into the output format

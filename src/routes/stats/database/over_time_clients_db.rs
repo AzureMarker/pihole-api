@@ -29,6 +29,8 @@ use failure::ResultExt;
 use shaku_rocket::{Inject, InjectProvided};
 use std::collections::HashMap;
 
+pub use over_time_clients_db as route;
+
 /// Get the clients queries over time data from the database
 #[get("/stats/database/overTime/clients?<from>&<until>&<interval>")]
 pub fn over_time_clients_db(

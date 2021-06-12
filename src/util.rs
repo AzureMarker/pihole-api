@@ -11,16 +11,17 @@
 use failure::{Backtrace, Context, Fail};
 use rocket::{
     http::Status,
+    outcome::Outcome,
     request,
     response::{self, Responder, Response},
-    Outcome, Request
+    serde::json::Value as JsonValue,
+    Request,
 };
-use rocket_contrib::json::JsonValue;
 use serde::Serialize;
 use std::{
     env,
     fmt::{self, Display},
-    sync::Arc
+    sync::Arc,
 };
 
 /// Type alias for the most common return type of the API methods
@@ -35,7 +36,7 @@ pub fn reply<D: Serialize>(data: Result<D, Error>, status: Status) -> Reply {
             // Only print out the error if it's not a common error
             match e.kind() {
                 ErrorKind::Unauthorized | ErrorKind::NotFound => (),
-                _ => e.print_stacktrace()
+                _ => e.print_stacktrace(),
             }
 
             // Get the extra error data, or null if there is none
@@ -63,7 +64,7 @@ pub fn reply<D: Serialize>(data: Result<D, Error>, status: Status) -> Reply {
 pub fn reply_result<D: Serialize>(data: Result<D, Error>) -> Reply {
     match data {
         Ok(data) => reply_data(data),
-        Err(error) => reply_error(error)
+        Err(error) => reply_error(error),
     }
 }
 
@@ -91,7 +92,7 @@ pub fn reply_success() -> Reply {
 /// See https://boats.gitlab.io/failure/error-errorkind.html
 #[derive(Debug, Clone)]
 pub struct Error {
-    inner: Arc<Context<ErrorKind>>
+    inner: Arc<Context<ErrorKind>>,
 }
 
 /// The `ErrorKind` enum represents all the possible errors that the API can
@@ -150,7 +151,7 @@ pub enum ErrorKind {
     #[fail(display = "Error while interacting with the FTL database")]
     FtlDatabase,
     #[fail(display = "Error while interacting with the Gravity database")]
-    GravityDatabase
+    GravityDatabase,
 }
 
 impl Error {
@@ -167,7 +168,7 @@ impl Error {
         }
 
         // Print out each cause
-        for (i, cause) in Fail::iter_causes(self).enumerate() {
+        for (i, cause) in <dyn Fail>::iter_causes(self).enumerate() {
             eprintln!("Cause #{}: {}", i + 1, cause);
 
             if backtrace_enabled {
@@ -238,7 +239,7 @@ impl ErrorKind {
             ErrorKind::SharedMemoryLock => "shared_memory_lock",
             ErrorKind::SharedMemoryVersion(_, _) => "shared_memory_version",
             ErrorKind::FtlDatabase => "ftl_database",
-            ErrorKind::GravityDatabase => "gravity_database"
+            ErrorKind::GravityDatabase => "gravity_database",
         }
     }
 
@@ -267,7 +268,7 @@ impl ErrorKind {
             | ErrorKind::SharedMemoryLock
             | ErrorKind::SharedMemoryVersion(_, _)
             | ErrorKind::FtlDatabase
-            | ErrorKind::GravityDatabase => Status::InternalServerError
+            | ErrorKind::GravityDatabase => Status::InternalServerError,
         }
     }
 
@@ -276,7 +277,7 @@ impl ErrorKind {
         match self {
             ErrorKind::FileRead(file) => Some(json!({ "file": file })),
             ErrorKind::FileWrite(file) => Some(json!({ "file": file })),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -300,7 +301,7 @@ impl Display for Error {
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Error {
         Error {
-            inner: Arc::new(Context::new(kind))
+            inner: Arc::new(Context::new(kind)),
         }
     }
 }
@@ -308,7 +309,7 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
         Error {
-            inner: Arc::new(inner)
+            inner: Arc::new(inner),
         }
     }
 }
@@ -325,8 +326,8 @@ impl From<shmem::Error> for Error {
     }
 }
 
-impl<'r> Responder<'r> for Error {
-    fn respond_to(self, request: &Request) -> response::Result<'r> {
+impl<'r> Responder<'r, 'static> for Error {
+    fn respond_to(self, request: &Request) -> response::Result<'static> {
         // This allows us to automatically use `reply_error` when we return an Error in
         // the API
         reply_error(self).unwrap().respond_to(request)
@@ -337,8 +338,8 @@ impl<'r> Responder<'r> for Error {
 #[derive(Debug)]
 pub struct SetStatus<R>(R, Status);
 
-impl<'r, R: Responder<'r>> Responder<'r> for SetStatus<R> {
-    fn respond_to(self, request: &Request) -> response::Result<'r> {
+impl<'r, 'o: 'r, R: Responder<'r, 'o>> Responder<'r, 'o> for SetStatus<R> {
+    fn respond_to(self, request: &'r Request<'_>) -> response::Result<'o> {
         // Set the status of the response
         Ok(Response::build_from(self.0.respond_to(request)?)
             .status(self.1)

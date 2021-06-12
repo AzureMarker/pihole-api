@@ -19,22 +19,24 @@ use crate::{
 use base64::{decode, encode};
 use failure::ResultExt;
 use rocket::{
-    http::RawStr,
-    request::{Form, FromFormValue},
+    form,
+    form::{FromFormField, ValueField},
     State
 };
 use shaku_rocket::{Inject, InjectProvided};
+
+pub use history as route;
 
 /// Get the query history according to the specified parameters
 #[get("/stats/history?<params..>")]
 pub fn history(
     _auth: User,
-    ftl_memory: State<FtlMemory>,
+    ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
-    params: Form<HistoryParams>,
+    params: HistoryParams,
     db: InjectProvided<PiholeModule, FtlDatabase>
 ) -> Reply {
-    reply_result(get_history(&ftl_memory, &env, params.into_inner(), &db))
+    reply_result(get_history(ftl_memory, &env, params, &db))
 }
 
 /// The structure returned by the history endpoint
@@ -110,15 +112,17 @@ impl HistoryCursor {
     }
 }
 
-impl<'a> FromFormValue<'a> for HistoryCursor {
-    type Error = Error;
-
-    fn from_form_value(form_value: &'a RawStr) -> Result<Self, Self::Error> {
+impl<'v> FromFormField<'v> for HistoryCursor {
+    fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
         // Decode from Base64
-        let decoded = decode(form_value).context(ErrorKind::BadRequest)?;
+        let decoded = decode(field.value)
+            .context(ErrorKind::BadRequest)
+            .map_err(|e| form::Error::validation(e.get_context().to_string()))?;
 
         // Deserialize from JSON
-        let cursor = serde_json::from_slice(&decoded).context(ErrorKind::BadRequest)?;
+        let cursor = serde_json::from_slice(&decoded)
+            .context(ErrorKind::BadRequest)
+            .map_err(|e| form::Error::validation(e.get_context().to_string()))?;
 
         Ok(cursor)
     }

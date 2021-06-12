@@ -1,17 +1,13 @@
 # Pi-hole API
 
-Work in progress HTTP API for Pi-hole.
+An HTTP API for Pi-hole.
 The API reads FTL's shared memory so it can directly read the statistics FTL
 generates. This API is the replacement for most of FTL's socket/telnet API, as
-well as the PHP API of the pre-5.0 web interface.
+well as the PHP API of the old web interface.
 
 ## Getting Started (Development)
 
 - Install Rust: https://www.rust-lang.org/tools/install
-    - Currently the project uses Rust nightly. The exact version used is stored
-      in [`rust-toolchain`](rust-toolchain). The version should be detected and
-      used automatically when you run a Rust command in the project directory,
-      such as `cargo check` (this is a feature of `rustup`)
     - After installing, make sure the Rust tools are on your PATH:
       ```
       source ~/.cargo/env
@@ -25,11 +21,11 @@ well as the PHP API of the pre-5.0 web interface.
   production the Pi-hole only needs the compiled output of the project, not its
   source code
     - Checkout the `development` branch for the latest changes.
-- Run `cargo check`. This will download the Rust nightly toolchain and project
-  dependencies, and it will check the program for errors. If everything was set
-  up correctly, the final output should look like this:
+- Run `cargo check`. This will download project dependencies and check the
+  program for errors. If everything was set up correctly, the final output
+  should look like this:
   ```
-      Finished dev [unoptimized + debuginfo] target(s) in 1m 11s
+      Finished dev [unoptimized + debuginfo] target(s) in 29.05s
   ```
 - Run `cargo test`. This will compile and run the tests. They should all pass
   :wink:
