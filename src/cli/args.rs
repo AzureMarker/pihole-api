@@ -19,36 +19,31 @@ use structopt::{clap::AppSettings, StructOpt};
 #[structopt(
     name = "pihole-API",
     about = "An HTTP API for Pi-hole.",
-    author = "",
-    raw(version = "get_version()"),
-    raw(global_setting = "AppSettings::VersionlessSubcommands")
+    version = get_version(),
+    global_setting = AppSettings::VersionlessSubcommands
 )]
 pub struct CliArgs {
     #[structopt(subcommand)]
     pub command: Option<CliCommand>,
 
     /// The location of the config
-    #[structopt(raw(default_value = "DEFAULT_CONFIG_LOCATION"), long)]
-    pub config: PathBuf
+    #[structopt(default_value = DEFAULT_CONFIG_LOCATION, long)]
+    pub config: PathBuf,
 }
 
-/// The commands that the CLI handles
+// The commands that the CLI handles
 #[derive(StructOpt)]
 pub enum CliCommand {
     /// Prints version information
-    #[structopt(name = "version", author = "", raw(version = "get_version()"))]
+    #[structopt(version = get_version())]
     Version,
     /// Prints branch
-    #[structopt(name = "branch", author = "", raw(version = "get_version()"))]
+    #[structopt(version = get_version())]
     Branch,
     /// Prints git hash
-    #[structopt(name = "hash", author = "", raw(version = "get_version()"))]
+    #[structopt(version = get_version())]
     Hash,
     /// Generate the dns server configuration
-    #[structopt(
-        name = "generate-dns-config",
-        author = "",
-        raw(version = "get_version()")
-    )]
-    GenerateDnsConfig
+    #[structopt(version = get_version())]
+    GenerateDnsConfig,
 }

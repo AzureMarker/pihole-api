@@ -13,10 +13,10 @@ use crate::{
     routes::auth::User,
     services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
-use hostname::get_hostname;
 use shaku_rocket::Inject;
+use std::ffi::OsString;
 
 /// Get Pi-hole local network information
 #[get("/settings/network")]
@@ -30,19 +30,19 @@ pub fn get_network(env: Inject<PiholeModule, Env>, _auth: User) -> Reply {
         "interface": SetupVarsEntry::PiholeInterface.read(&env)?,
         "ipv4_address": ipv4_address[0],
         "ipv6_address": ipv6_address[0],
-        "hostname": get_hostname().unwrap_or_else(|| "unknown".to_owned())
+        "hostname": hostname::get().unwrap_or_else(|_| OsString::from("unknown"))
     }))
 }
 
 #[cfg(test)]
 mod test {
     use crate::{env::PiholeFile, testing::TestBuilder};
-    use hostname::get_hostname;
+    use std::ffi::OsString;
 
     /// Basic test for reported settings
     #[test]
     fn test_get_network() {
-        let current_host = get_hostname().unwrap_or_else(|| "unknown".to_owned());
+        let current_host = hostname::get().unwrap_or_else(|_| OsString::from("unknown"));
 
         TestBuilder::new()
             .endpoint("/admin/api/settings/network")
@@ -50,7 +50,7 @@ mod test {
                 PiholeFile::SetupVars,
                 "IPV4_ADDRESS=192.168.1.205/24\n\
                  IPV6_ADDRESS=fd06:fb62:d251:9033:0:0:0:33\n\
-                 PIHOLE_INTERFACE=eth0\n"
+                 PIHOLE_INTERFACE=eth0\n",
             )
             .expect_json(json!({
                 "interface": "eth0",
@@ -64,7 +64,7 @@ mod test {
     /// Test for common configuration of ipv4 only (no ipv6)
     #[test]
     fn test_get_network_ipv4only() {
-        let current_host = get_hostname().unwrap_or_else(|| "unknown".to_owned());
+        let current_host = hostname::get().unwrap_or_else(|_| OsString::from("unknown"));
 
         TestBuilder::new()
             .endpoint("/admin/api/settings/network")
@@ -72,7 +72,7 @@ mod test {
                 PiholeFile::SetupVars,
                 "IPV4_ADDRESS=192.168.1.205/24\n\
                  IPV6_ADDRESS=\n\
-                 PIHOLE_INTERFACE=eth0\n"
+                 PIHOLE_INTERFACE=eth0\n",
             )
             .expect_json(json!({
                 "interface": "eth0",
