@@ -31,10 +31,10 @@ pub async fn handle_cli() -> Result<(), Error> {
             CliCommand::Version => println!("{}", get_version()),
             CliCommand::Branch => println!("{}", get_branch()),
             CliCommand::Hash => println!("{}", get_hash()),
-            CliCommand::GenerateDnsConfig => generate_dnsmasq_cli()?
+            CliCommand::GenerateDnsConfig => generate_dnsmasq_cli(&args.config)?
         },
         // No command given, start the API
-        None => start().await?
+        None => start(&args.config).await?
     }
 
     Ok(())

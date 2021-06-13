@@ -12,4 +12,8 @@ mod config;
 mod env_impl;
 mod file;
 
-pub use self::{config::Config, env_impl::Env, file::PiholeFile};
+pub use self::{
+    config::{Config, DEFAULT_CONFIG_LOCATION},
+    env_impl::Env,
+    file::PiholeFile
+};

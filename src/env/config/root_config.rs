@@ -15,11 +15,12 @@ use crate::{
 use failure::{Fail, ResultExt};
 use std::{
     fs::File,
-    io::{self, prelude::*}
+    io::{self, prelude::*},
+    path::Path
 };
 
 /// The default config location
-const CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
+pub const DEFAULT_CONFIG_LOCATION: &str = "/etc/pihole/API.toml";
 
 /// The API config options
 #[derive(Deserialize, Default, Clone, Debug)]
@@ -33,39 +34,34 @@ pub struct Config {
 }
 
 impl Config {
-    /// Load the config from the default location. If it does not exist, return
-    /// the default config.
-    pub fn load() -> Result<Config, Error> {
-        Self::parse(CONFIG_LOCATION)
-    }
-
-    /// Parse the config from the file located at `config_location`. If it does
+    /// Load the config from the file located at `config_location`. If it does
     /// not exist, return the default config.
-    pub fn parse(config_location: &str) -> Result<Config, Error> {
+    pub fn load(config_location: &Path) -> Result<Config, Error> {
         let mut buffer = String::new();
 
         // Read the file to a string, but return the default config if the file doesn't
         // exist
         let mut file = match File::open(config_location) {
             Ok(f) => f,
-            Err(e) => match e.kind() {
-                io::ErrorKind::NotFound => {
-                    println!(
-                        "Cannot find config file {}, using default config",
-                        config_location
-                    );
-                    return Ok(Self::default());
-                }
-                _ => {
-                    return Err(Error::from(
-                        e.context(ErrorKind::FileRead(config_location.to_owned()))
-                    ));
+            Err(e) => {
+                return match e.kind() {
+                    io::ErrorKind::NotFound => {
+                        println!(
+                            "Cannot find config file {}, using default config",
+                            config_location.display()
+                        );
+                        Ok(Self::default())
+                    }
+                    _ => Err(Error::from(e.context(ErrorKind::FileRead(
+                        config_location.display().to_string()
+                    ))))
                 }
             }
         };
 
-        file.read_to_string(&mut buffer)
-            .map_err(|e| Error::from(e.context(ErrorKind::FileRead(config_location.to_owned()))))?;
+        file.read_to_string(&mut buffer).map_err(|e| {
+            Error::from(e.context(ErrorKind::FileRead(config_location.display().to_string())))
+        })?;
 
         let config = toml::from_str::<Config>(&buffer).context(ErrorKind::ConfigParsingError)?;
 

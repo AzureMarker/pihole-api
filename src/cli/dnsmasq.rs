@@ -14,6 +14,7 @@ use crate::{
     settings::generate_dnsmasq_config,
     util::Error
 };
+use std::path::Path;
 
 /// Generate the dnsmasq config using [`generate_dnsmasq_config`]. Dnsmasq (FTL)
 /// will be restarted in the process of applying the changes. This should be
@@ -22,8 +23,8 @@ use crate::{
 /// [`generate_dnsmasq_config`]:
 /// ../../settings/dnsmasq/fn.generate_dnsmasq_config.html
 /// [`GenerateDnsmasq`]: ../args/enum.CliCommand.html#variant.GenerateDnsmasq
-pub fn generate_dnsmasq_cli() -> Result<(), Error> {
-    let config = Config::load()?;
+pub fn generate_dnsmasq_cli(config_location: &Path) -> Result<(), Error> {
+    let config = Config::load(config_location)?;
     let env = Env::Production(config);
 
     println!("Generating dnsmasq config...");

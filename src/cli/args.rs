@@ -8,7 +8,8 @@
 // This file is copyright under the latest version of the EUPL.
 // Please see LICENSE file for your rights under this license.
 
-use crate::cli::handler::get_version;
+use crate::{cli::handler::get_version, env::DEFAULT_CONFIG_LOCATION};
+use std::path::PathBuf;
 use structopt::{clap::AppSettings, StructOpt};
 
 /// This defines the arguments that the CLI can be given.
@@ -17,14 +18,18 @@ use structopt::{clap::AppSettings, StructOpt};
 #[derive(StructOpt)]
 #[structopt(
     name = "pihole-API",
-    about = "Work in progress HTTP API for Pi-hole.",
+    about = "An HTTP API for Pi-hole.",
     author = "",
     raw(version = "get_version()"),
     raw(global_setting = "AppSettings::VersionlessSubcommands")
 )]
 pub struct CliArgs {
     #[structopt(subcommand)]
-    pub command: Option<CliCommand>
+    pub command: Option<CliCommand>,
+
+    /// The location of the config
+    #[structopt(raw(default_value = "DEFAULT_CONFIG_LOCATION"), long)]
+    pub config: PathBuf
 }
 
 /// The commands that the CLI handles

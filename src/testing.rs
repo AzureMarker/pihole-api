@@ -14,25 +14,24 @@ use crate::{
         ftl::{FtlDatabase, FtlDatabasePool, FtlDatabasePoolParameters, TEST_FTL_DATABASE_SCHEMA},
         gravity::{
             GravityDatabase, GravityDatabasePool, GravityDatabasePoolParameters,
-            TEST_GRAVITY_DATABASE_SCHEMA,
+            TEST_GRAVITY_DATABASE_SCHEMA
         },
-        DatabaseService, FakeDatabaseService,
+        DatabaseService, FakeDatabaseService
     },
     env::{Config, Env, PiholeFile},
     ftl::{FtlConnectionType, FtlCounters, FtlMemory, FtlSettings},
     services::PiholeModule,
-    setup,
+    setup
 };
 use rocket::{
     http::{ContentType, Header, Method, Status},
-    local::blocking::Client,
-    Build, Rocket,
+    local::blocking::Client
 };
 use shaku::{HasComponent, HasProvider, Interface, ModuleBuilder, ProviderFn};
 use std::{
     collections::HashMap,
     fs::File,
-    io::{prelude::*, SeekFrom},
+    io::{prelude::*, SeekFrom}
 };
 use tempfile::NamedTempFile;
 
@@ -43,14 +42,14 @@ pub fn write_eom(data: &mut Vec<u8>) {
 
 /// Builds the data needed to create a `Env::Test`
 pub struct TestEnvBuilder {
-    test_files: Vec<TestFile<NamedTempFile>>,
+    test_files: Vec<TestFile<NamedTempFile>>
 }
 
 impl TestEnvBuilder {
     /// Create a new `TestEnvBuilder`
     pub fn new() -> TestEnvBuilder {
         TestEnvBuilder {
-            test_files: Vec::new(),
+            test_files: Vec::new()
         }
     }
 
@@ -64,13 +63,13 @@ impl TestEnvBuilder {
         mut self,
         pihole_file: PiholeFile,
         initial_data: &str,
-        expected_data: &str,
+        expected_data: &str
     ) -> Self {
         let test_file = TestFile::new(
             pihole_file,
             NamedTempFile::new().unwrap(),
             initial_data.to_owned(),
-            expected_data.to_owned(),
+            expected_data.to_owned()
         );
         self.test_files.push(test_file);
         self
@@ -103,7 +102,7 @@ impl TestEnvBuilder {
                 pihole_file: test_file.pihole_file,
                 temp_file: test_file.temp_file.reopen().unwrap(),
                 initial_data: test_file.initial_data.clone(),
-                expected_data: test_file.expected_data.clone(),
+                expected_data: test_file.expected_data.clone()
             })
         }
 
@@ -117,7 +116,7 @@ pub struct TestFile<T: Seek + Read> {
     pihole_file: PiholeFile,
     temp_file: T,
     initial_data: String,
-    expected_data: String,
+    expected_data: String
 }
 
 impl<T: Seek + Read> TestFile<T> {
@@ -126,13 +125,13 @@ impl<T: Seek + Read> TestFile<T> {
         pihole_file: PiholeFile,
         temp_file: T,
         initial_data: String,
-        expected_data: String,
+        expected_data: String
     ) -> TestFile<T> {
         TestFile {
             pihole_file,
             temp_file,
             initial_data,
-            expected_data,
+            expected_data
         }
     }
 
@@ -163,8 +162,7 @@ pub struct TestBuilder {
     expected_json: serde_json::Value,
     expected_status: Status,
     needs_database: bool,
-    module_builder: ModuleBuilder<PiholeModule>,
-    rocket_hooks: Vec<Box<dyn FnOnce(Rocket<Build>) -> Rocket<Build>>>,
+    module_builder: ModuleBuilder<PiholeModule>
 }
 
 impl TestBuilder {
@@ -185,7 +183,7 @@ impl TestBuilder {
                 upstreams: Vec::new(),
                 strings: HashMap::new(),
                 counters: FtlCounters::default(),
-                settings: FtlSettings::default(),
+                settings: FtlSettings::default()
             },
             test_env_builder: TestEnvBuilder::new(),
             expected_json: json!({
@@ -194,8 +192,7 @@ impl TestBuilder {
             }),
             expected_status: Status::Ok,
             needs_database: false,
-            module_builder: PiholeModule::builder(),
-            rocket_hooks: Vec::new(),
+            module_builder: PiholeModule::builder()
         }
     }
 
@@ -249,7 +246,7 @@ impl TestBuilder {
         mut self,
         pihole_file: PiholeFile,
         initial_data: &str,
-        expected_data: &str,
+        expected_data: &str
     ) -> Self {
         self.test_env_builder =
             self.test_env_builder
@@ -277,7 +274,7 @@ impl TestBuilder {
     #[allow(unused)]
     pub fn mock_component<I: Interface + ?Sized>(mut self, component: Box<I>) -> Self
     where
-        PiholeModule: HasComponent<I>,
+        PiholeModule: HasComponent<I>
     {
         self.module_builder = self.module_builder.with_component_override(component);
         self
@@ -285,10 +282,10 @@ impl TestBuilder {
 
     pub fn mock_provider<I: ?Sized + 'static>(
         mut self,
-        provider_fn: ProviderFn<PiholeModule, I>,
+        provider_fn: ProviderFn<PiholeModule, I>
     ) -> Self
     where
-        PiholeModule: HasProvider<I>,
+        PiholeModule: HasProvider<I>
     {
         self.module_builder = self.module_builder.with_provider_override(provider_fn);
         self
@@ -311,39 +308,34 @@ impl TestBuilder {
             .module_builder
             .with_component_parameters::<Env>(env)
             .with_component_parameters::<FtlConnectionType>(
-            FtlConnectionType::Test(self.ftl_data),
+            FtlConnectionType::Test(self.ftl_data)
         );
 
         self.module_builder = if self.needs_database {
             self.module_builder
                 .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
-                    pool: create_memory_db(TEST_GRAVITY_DATABASE_SCHEMA, 1),
+                    pool: create_memory_db(TEST_GRAVITY_DATABASE_SCHEMA, 1)
                 })
                 .with_component_parameters::<FtlDatabasePool>(FtlDatabasePoolParameters {
-                    pool: create_memory_db(TEST_FTL_DATABASE_SCHEMA, 1),
+                    pool: create_memory_db(TEST_FTL_DATABASE_SCHEMA, 1)
                 })
         } else {
             self.module_builder
                 .with_component_override::<dyn DatabaseService<GravityDatabase>>(Box::new(
-                    FakeDatabaseService,
+                    FakeDatabaseService
                 ))
                 .with_component_override::<dyn DatabaseService<FtlDatabase>>(Box::new(
-                    FakeDatabaseService,
+                    FakeDatabaseService
                 ))
         };
 
         // Configure the test server
-        let mut rocket = setup::test(
+        let rocket = setup::test(
             self.ftl_memory,
             &config,
             api_key,
-            self.module_builder.build(),
+            self.module_builder.build()
         );
-
-        // Execute the Rocket hooks
-        for hook in self.rocket_hooks {
-            rocket = hook(rocket);
-        }
 
         // Start the test client
         let client = Client::untracked(rocket).unwrap();

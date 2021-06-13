@@ -15,13 +15,13 @@ use rocket::{
     request,
     response::{self, Responder, Response},
     serde::json::Value as JsonValue,
-    Request,
+    Request
 };
 use serde::Serialize;
 use std::{
     env,
     fmt::{self, Display},
-    sync::Arc,
+    sync::Arc
 };
 
 /// Type alias for the most common return type of the API methods
@@ -36,7 +36,7 @@ pub fn reply<D: Serialize>(data: Result<D, Error>, status: Status) -> Reply {
             // Only print out the error if it's not a common error
             match e.kind() {
                 ErrorKind::Unauthorized | ErrorKind::NotFound => (),
-                _ => e.print_stacktrace(),
+                _ => e.print_stacktrace()
             }
 
             // Get the extra error data, or null if there is none
@@ -64,7 +64,7 @@ pub fn reply<D: Serialize>(data: Result<D, Error>, status: Status) -> Reply {
 pub fn reply_result<D: Serialize>(data: Result<D, Error>) -> Reply {
     match data {
         Ok(data) => reply_data(data),
-        Err(error) => reply_error(error),
+        Err(error) => reply_error(error)
     }
 }
 
@@ -92,7 +92,7 @@ pub fn reply_success() -> Reply {
 /// See https://boats.gitlab.io/failure/error-errorkind.html
 #[derive(Debug, Clone)]
 pub struct Error {
-    inner: Arc<Context<ErrorKind>>,
+    inner: Arc<Context<ErrorKind>>
 }
 
 /// The `ErrorKind` enum represents all the possible errors that the API can
@@ -151,7 +151,7 @@ pub enum ErrorKind {
     #[fail(display = "Error while interacting with the FTL database")]
     FtlDatabase,
     #[fail(display = "Error while interacting with the Gravity database")]
-    GravityDatabase,
+    GravityDatabase
 }
 
 impl Error {
@@ -239,7 +239,7 @@ impl ErrorKind {
             ErrorKind::SharedMemoryLock => "shared_memory_lock",
             ErrorKind::SharedMemoryVersion(_, _) => "shared_memory_version",
             ErrorKind::FtlDatabase => "ftl_database",
-            ErrorKind::GravityDatabase => "gravity_database",
+            ErrorKind::GravityDatabase => "gravity_database"
         }
     }
 
@@ -268,7 +268,7 @@ impl ErrorKind {
             | ErrorKind::SharedMemoryLock
             | ErrorKind::SharedMemoryVersion(_, _)
             | ErrorKind::FtlDatabase
-            | ErrorKind::GravityDatabase => Status::InternalServerError,
+            | ErrorKind::GravityDatabase => Status::InternalServerError
         }
     }
 
@@ -277,7 +277,7 @@ impl ErrorKind {
         match self {
             ErrorKind::FileRead(file) => Some(json!({ "file": file })),
             ErrorKind::FileWrite(file) => Some(json!({ "file": file })),
-            _ => None,
+            _ => None
         }
     }
 }
@@ -301,7 +301,7 @@ impl Display for Error {
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Error {
         Error {
-            inner: Arc::new(Context::new(kind)),
+            inner: Arc::new(Context::new(kind))
         }
     }
 }
@@ -309,7 +309,7 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
         Error {
-            inner: Arc::new(inner),
+            inner: Arc::new(inner)
         }
     }
 }

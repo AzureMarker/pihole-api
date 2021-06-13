@@ -13,4 +13,4 @@ mod general;
 mod root_config;
 mod web;
 
-pub use self::root_config::Config;
+pub use self::root_config::{Config, DEFAULT_CONFIG_LOCATION};

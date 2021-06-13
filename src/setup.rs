@@ -13,17 +13,17 @@ use crate::{
         custom_connection::CustomSqliteConnection,
         ftl::{FtlDatabasePool, FtlDatabasePoolParameters},
         gravity::{GravityDatabasePool, GravityDatabasePoolParameters},
-        load_ftl_db_config, load_gravity_db_config,
+        load_ftl_db_config, load_gravity_db_config
     },
     env::{Config, Env},
     ftl::FtlMemory,
     routes::{
         auth::{self, AuthData},
-        dns, settings, stats, version, web,
+        dns, settings, stats, version, web
     },
     services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{Error, ErrorKind},
+    util::{Error, ErrorKind}
 };
 use failure::ResultExt;
 use rocket::{Build, Rocket};
@@ -31,6 +31,7 @@ use rocket_cors::CorsOptions;
 
 #[cfg(test)]
 use rocket::config::LogLevel;
+use std::path::Path;
 
 #[catch(404)]
 fn not_found() -> Error {
@@ -43,8 +44,8 @@ fn unauthorized() -> Error {
 }
 
 /// Run the API normally (connect to FTL over the socket)
-pub async fn start() -> Result<(), Error> {
-    let config = Config::load()?;
+pub async fn start(config_location: &Path) -> Result<(), Error> {
+    let config = Config::load(config_location)?;
     let env = Env::Production(config);
     let key = SetupVarsEntry::WebPassword.read(&env)?;
 
@@ -53,11 +54,11 @@ pub async fn start() -> Result<(), Error> {
     let module = PiholeModule::builder()
         .with_component_parameters::<GravityDatabasePool>(GravityDatabasePoolParameters {
             pool: CustomSqliteConnection::pool(load_gravity_db_config(&env)?)
-                .context(ErrorKind::GravityDatabase)?,
+                .context(ErrorKind::GravityDatabase)?
         })
         .with_component_parameters::<FtlDatabasePool>(FtlDatabasePoolParameters {
             pool: CustomSqliteConnection::pool(load_ftl_db_config(&env)?)
-                .context(ErrorKind::FtlDatabase)?,
+                .context(ErrorKind::FtlDatabase)?
         })
         .with_component_parameters::<Env>(env.clone())
         .build();
@@ -72,7 +73,7 @@ pub async fn start() -> Result<(), Error> {
         FtlMemory::production(),
         env.config(),
         if key.is_empty() { None } else { Some(key) },
-        module,
+        module
     )
     .launch()
     .await
@@ -87,7 +88,7 @@ pub fn test(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    module: PiholeModule,
+    module: PiholeModule
 ) -> Rocket<Build> {
     setup(
         rocket::custom(rocket::Config {
@@ -97,7 +98,7 @@ pub fn test(
         ftl_memory,
         &config,
         api_key,
-        module,
+        module
     )
 }
 
@@ -107,7 +108,7 @@ fn setup(
     ftl_memory: FtlMemory,
     config: &Config,
     api_key: Option<String>,
-    module: PiholeModule,
+    module: PiholeModule
 ) -> Rocket<Build> {
     // Set up CORS
     let cors = CorsOptions {
@@ -131,7 +132,7 @@ fn setup(
         // Mount the web interface at the configured route
         server.mount(
             web_route.as_ref(),
-            routes![web::web_interface_index, web::web_interface],
+            routes![web::web_interface_index, web::web_interface]
         )
     } else {
         server
