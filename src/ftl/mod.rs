@@ -18,5 +18,5 @@ pub use self::{
     memory_model::*,
     shared_lock::{ShmLock, ShmLockGuard},
     shared_memory::FtlMemory,
-    socket::{FtlConnection, FtlConnectionType}
+    socket::{FtlConnection, FtlConnectionType},
 };

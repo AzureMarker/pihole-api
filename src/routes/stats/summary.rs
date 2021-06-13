@@ -13,7 +13,7 @@ use crate::{
     ftl::{FtlMemory, FtlQueryType},
     services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
 use rocket::State;
 use shaku_rocket::Inject;
@@ -53,7 +53,7 @@ pub fn get_summary(ftl_memory: &State<FtlMemory>, env: Inject<PiholeModule, Env>
 
             (
                 counters.total_clients as usize - hidden_client_count,
-                active_client_count
+                active_client_count,
             )
         }
     };
@@ -73,7 +73,7 @@ pub fn get_summary(ftl_memory: &State<FtlMemory>, env: Inject<PiholeModule, Env>
             SRV: counters.query_type(FtlQueryType::SRV),
             SOA: counters.query_type(FtlQueryType::SOA),
             PTR: counters.query_type(FtlQueryType::PTR),
-            TXT: counters.query_type(FtlQueryType::TXT)
+            TXT: counters.query_type(FtlQueryType::TXT),
         },
         blocked_queries: counters.blocked_queries as usize,
         percent_blocked,
@@ -85,11 +85,11 @@ pub fn get_summary(ftl_memory: &State<FtlMemory>, env: Inject<PiholeModule, Env>
             CNAME: counters.reply_count_cname as usize,
             DOMAIN: counters.reply_count_domain as usize,
             NODATA: counters.reply_count_nodata as usize,
-            NXDOMAIN: counters.reply_count_nxdomain as usize
+            NXDOMAIN: counters.reply_count_nxdomain as usize,
         },
         total_clients,
         active_clients,
-        status
+        status,
     })
 }
 
@@ -107,7 +107,7 @@ pub struct Summary {
     pub reply_types: ReplyTypes,
     pub total_clients: usize,
     pub active_clients: usize,
-    pub status: &'static str
+    pub status: &'static str,
 }
 
 /// Part of the summary response
@@ -121,7 +121,7 @@ pub struct TotalQueries {
     pub SRV: usize,
     pub SOA: usize,
     pub PTR: usize,
-    pub TXT: usize
+    pub TXT: usize,
 }
 
 /// Part of the summary response
@@ -133,7 +133,7 @@ pub struct ReplyTypes {
     pub CNAME: usize,
     pub DOMAIN: usize,
     pub NODATA: usize,
-    pub NXDOMAIN: usize
+    pub NXDOMAIN: usize,
 }
 
 #[cfg(test)]
@@ -141,7 +141,7 @@ mod test {
     use crate::{
         env::PiholeFile,
         ftl::{FtlClient, FtlCounters, FtlMemory, FtlSettings},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use std::collections::HashMap;
 
@@ -187,7 +187,7 @@ mod test {
                 total_clients: 6,
                 ..FtlCounters::default()
             },
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 

@@ -11,10 +11,10 @@
 use crate::{
     cli::{
         args::{CliArgs, CliCommand},
-        dnsmasq::generate_dnsmasq_cli
+        dnsmasq::generate_dnsmasq_cli,
     },
     setup::start,
-    util::Error
+    util::Error,
 };
 use structopt::StructOpt;
 
@@ -31,10 +31,10 @@ pub async fn handle_cli() -> Result<(), Error> {
             CliCommand::Version => println!("{}", get_version()),
             CliCommand::Branch => println!("{}", get_branch()),
             CliCommand::Hash => println!("{}", get_hash()),
-            CliCommand::GenerateDnsConfig => generate_dnsmasq_cli(&args.config)?
+            CliCommand::GenerateDnsConfig => generate_dnsmasq_cli(&args.config)?,
         },
         // No command given, start the API
-        None => start(&args.config).await?
+        None => start(&args.config).await?,
     }
 
     Ok(())

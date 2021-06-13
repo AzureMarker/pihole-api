@@ -9,14 +9,14 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::ftl::queries, ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams
+    databases::ftl::queries, ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams,
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 
 /// Filter out queries before the `from` timestamp
 pub fn filter_time_from<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(from) = params.from {
         Box::new(queries_iter.filter(move |query| query.timestamp as u64 >= from))
@@ -28,7 +28,7 @@ pub fn filter_time_from<'a>(
 /// Filter out queries after the `until` timestamp
 pub fn filter_time_until<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(until) = params.until {
         Box::new(queries_iter.filter(move |query| query.timestamp as u64 <= until))
@@ -40,7 +40,7 @@ pub fn filter_time_until<'a>(
 /// Filter out queries before the `from` timestamp in database results
 pub fn filter_time_from_db<'a>(
     db_query: queries::BoxedQuery<'a, Sqlite>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> queries::BoxedQuery<'a, Sqlite> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -55,7 +55,7 @@ pub fn filter_time_from_db<'a>(
 /// Filter out queries after the `until` timestamp in database results
 pub fn filter_time_until_db<'a>(
     db_query: queries::BoxedQuery<'a, Sqlite>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> queries::BoxedQuery<'a, Sqlite> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -74,8 +74,8 @@ mod test {
         databases::ftl::connect_to_ftl_test_db,
         ftl::FtlQuery,
         routes::stats::history::{
-            database::execute_query, endpoints::HistoryParams, testing::test_queries
-        }
+            database::execute_query, endpoints::HistoryParams, testing::test_queries,
+        },
     };
     use diesel::prelude::*;
 
@@ -89,7 +89,7 @@ mod test {
             &HistoryParams {
                 from: Some(263_584),
                 ..HistoryParams::default()
-            }
+            },
         )
         .collect();
 
@@ -106,7 +106,7 @@ mod test {
             &HistoryParams {
                 until: Some(263_584),
                 ..HistoryParams::default()
-            }
+            },
         )
         .collect();
 

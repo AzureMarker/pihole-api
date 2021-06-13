@@ -12,11 +12,11 @@ use crate::{
     databases::{
         common::DatabaseService,
         custom_connection::{
-            CustomDBConfig, CustomSqliteConnection, CustomSqliteConnectionManager
-        }
+            CustomDBConfig, CustomSqliteConnection, CustomSqliteConnectionManager,
+        },
     },
     settings::{ConfigEntry, FtlConfEntry},
-    util::{self, ErrorKind}
+    util::{self, ErrorKind},
 };
 use diesel::{r2d2::Pool, SqliteConnection};
 use failure::{Fail, ResultExt};
@@ -28,7 +28,7 @@ fn default_connection() -> Pool<CustomSqliteConnectionManager> {
     let config = CustomDBConfig {
         url: FtlConfEntry::GravityDb.get_default().to_owned(),
         pool_size: 8,
-        test_schema: None
+        test_schema: None,
     };
 
     CustomSqliteConnection::pool(config).unwrap()
@@ -38,7 +38,7 @@ fn default_connection() -> Pool<CustomSqliteConnectionManager> {
 #[shaku(interface = DatabaseService<GravityDatabase>)]
 pub struct GravityDatabasePool {
     #[shaku(default = default_connection())]
-    pool: Pool<CustomSqliteConnectionManager>
+    pool: Pool<CustomSqliteConnectionManager>,
 }
 
 impl DatabaseService<GravityDatabase> for GravityDatabasePool {

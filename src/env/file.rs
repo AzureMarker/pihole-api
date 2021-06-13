@@ -22,7 +22,7 @@ pub enum PiholeFile {
     Gravity,
     GravityBackup,
     BlackList,
-    BlackListBackup
+    BlackListBackup,
 }
 
 impl PiholeFile {
@@ -40,7 +40,7 @@ impl PiholeFile {
             PiholeFile::Gravity => "/etc/pihole/gravity.list",
             PiholeFile::GravityBackup => "/etc/pihole/gravity.list.bck",
             PiholeFile::BlackList => "/etc/pihole/black.list",
-            PiholeFile::BlackListBackup => "/etc/pihole/black.list.bck"
+            PiholeFile::BlackListBackup => "/etc/pihole/black.list.bck",
         }
     }
 }

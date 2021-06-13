@@ -28,7 +28,7 @@ pub struct General {
         default = "default_log_level",
         deserialize_with = "deserialize_logging_level"
     )]
-    pub log_level: LogLevel
+    pub log_level: LogLevel,
 }
 
 impl Default for General {
@@ -36,7 +36,7 @@ impl Default for General {
         General {
             address: default_address(),
             port: default_port(),
-            log_level: default_log_level()
+            log_level: default_log_level(),
         }
     }
 }
@@ -52,7 +52,7 @@ impl General {
 /// field.
 fn deserialize_logging_level<'de, D>(deserializer: D) -> Result<LogLevel, D::Error>
 where
-    D: Deserializer<'de>
+    D: Deserializer<'de>,
 {
     let level_str = String::deserialize(deserializer)?;
     LogLevel::from_str(&level_str).map_err(serde::de::Error::custom)

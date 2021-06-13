@@ -14,9 +14,9 @@ use crate::{
     routes::stats::history::{
         endpoints::{HistoryCursor, HistoryParams},
         filters::*,
-        skip_to_cursor::skip_to_cursor_db
+        skip_to_cursor::skip_to_cursor_db,
     },
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 use failure::ResultExt;
@@ -35,7 +35,7 @@ pub fn load_queries_from_database(
     start_id: Option<i64>,
     params: &HistoryParams,
     env: &Env,
-    limit: usize
+    limit: usize,
 ) -> Result<(Vec<FtlDbQuery>, Option<HistoryCursor>), Error> {
     // Use the Diesel DSL of this table for easy querying
     use crate::databases::ftl::queries::dsl::*;
@@ -73,7 +73,7 @@ pub fn load_queries_from_database(
     let cursor = if results.len() == limit + 1 {
         Some(HistoryCursor {
             id: None,
-            db_id: Some(results[limit].id as i64)
+            db_id: Some(results[limit].id as i64),
         })
     } else {
         None
@@ -90,7 +90,7 @@ pub fn load_queries_from_database(
 /// The database could be real, or it could be a test database.
 pub fn execute_query(
     db: &FtlDatabase,
-    db_query: queries::BoxedQuery<Sqlite>
+    db_query: queries::BoxedQuery<Sqlite>,
 ) -> Result<Vec<FtlDbQuery>, Error> {
     db_query
         .load(db as &SqliteConnection)
@@ -105,7 +105,7 @@ mod test {
         databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         routes::stats::history::endpoints::{HistoryCursor, HistoryParams},
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
 
     /// Queries are ordered by id, descending
@@ -120,7 +120,7 @@ mod test {
             Some(2),
             &HistoryParams::default(),
             &env,
-            100
+            100,
         )
         .unwrap();
 
@@ -137,7 +137,7 @@ mod test {
             .build();
         let expected_cursor = Some(HistoryCursor {
             id: None,
-            db_id: Some(1)
+            db_id: Some(1),
         });
 
         let (queries, cursor) = load_queries_from_database(
@@ -145,7 +145,7 @@ mod test {
             Some(3),
             &HistoryParams::default(),
             &env,
-            2
+            2,
         )
         .unwrap();
 

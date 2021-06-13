@@ -11,7 +11,7 @@
 use crate::{
     databases::gravity::GravityDatabase,
     services::lists::List,
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use diesel::{delete, dsl::exists, insert_into, prelude::*, select};
 use failure::ResultExt;
@@ -38,7 +38,7 @@ pub trait ListRepository: Send {
 #[shaku(interface = ListRepository)]
 pub struct ListRepositoryImpl {
     #[shaku(provide)]
-    db: Box<GravityDatabase>
+    db: Box<GravityDatabase>,
 }
 
 impl ListRepository for ListRepositoryImpl {
@@ -72,7 +72,7 @@ impl ListRepository for ListRepositoryImpl {
                 select(exists(
                     whitelist
                         .filter(enabled.eq(true))
-                        .filter(domain.eq(input_domain))
+                        .filter(domain.eq(input_domain)),
                 ))
                 .get_result(db)
             }
@@ -81,7 +81,7 @@ impl ListRepository for ListRepositoryImpl {
                 select(exists(
                     blacklist
                         .filter(enabled.eq(true))
-                        .filter(domain.eq(input_domain))
+                        .filter(domain.eq(input_domain)),
                 ))
                 .get_result(db)
             }
@@ -90,7 +90,7 @@ impl ListRepository for ListRepositoryImpl {
                 select(exists(
                     regex
                         .filter(enabled.eq(true))
-                        .filter(domain.eq(input_domain))
+                        .filter(domain.eq(input_domain)),
                 ))
                 .get_result(db)
             }
@@ -136,7 +136,7 @@ impl ListRepository for ListRepositoryImpl {
                 delete(
                     whitelist
                         .filter(enabled.eq(true))
-                        .filter(domain.eq(input_domain))
+                        .filter(domain.eq(input_domain)),
                 )
                 .execute(db)
             }
@@ -145,7 +145,7 @@ impl ListRepository for ListRepositoryImpl {
                 delete(
                     blacklist
                         .filter(enabled.eq(true))
-                        .filter(domain.eq(input_domain))
+                        .filter(domain.eq(input_domain)),
                 )
                 .execute(db)
             }
@@ -154,7 +154,7 @@ impl ListRepository for ListRepositoryImpl {
                 delete(
                     regex
                         .filter(enabled.eq(true))
-                        .filter(domain.eq(input_domain))
+                        .filter(domain.eq(input_domain)),
                 )
                 .execute(db)
             }

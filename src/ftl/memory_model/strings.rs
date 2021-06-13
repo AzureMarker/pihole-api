@@ -24,7 +24,7 @@ pub enum FtlStrings<'test> {
     // will cause an error. The `PhantomData` is zero-sized, so it will not actually exist.
     Production(Array<libc::c_char>, PhantomData<&'test bool>),
     #[cfg(test)]
-    Test(&'test HashMap<usize, String>)
+    Test(&'test HashMap<usize, String>),
 }
 
 impl<'test> FtlStrings<'test> {

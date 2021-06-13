@@ -13,7 +13,7 @@ use crate::{
     routes::auth::User,
     services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{reply_data, reply_success, Error, ErrorKind, Reply}
+    util::{reply_data, reply_success, Error, ErrorKind, Reply},
 };
 use rocket::serde::json::Json;
 use shaku_rocket::Inject;
@@ -23,7 +23,7 @@ use shaku_rocket::Inject;
 pub fn get_web(env: Inject<PiholeModule, Env>) -> Reply {
     let settings = WebSettings {
         layout: SetupVarsEntry::WebLayout.read(&env)?,
-        language: SetupVarsEntry::WebLanguage.read(&env)?
+        language: SetupVarsEntry::WebLanguage.read(&env)?,
     };
 
     reply_data(settings)
@@ -47,7 +47,7 @@ pub fn put_web(_auth: User, env: Inject<PiholeModule, Env>, settings: Json<WebSe
 #[derive(Serialize, Deserialize)]
 pub struct WebSettings {
     layout: String,
-    language: String
+    language: String,
 }
 
 impl WebSettings {

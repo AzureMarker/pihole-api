@@ -13,11 +13,11 @@ use crate::{
     ftl::{FtlClient, FtlMemory},
     routes::{
         auth::User,
-        stats::common::{remove_excluded_clients, remove_hidden_clients}
+        stats::common::{remove_excluded_clients, remove_hidden_clients},
     },
     services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_result, Error, Reply}
+    util::{reply_result, Error, Reply},
 };
 use rocket::State;
 use shaku_rocket::Inject;
@@ -30,7 +30,7 @@ pub fn top_clients(
     _auth: User,
     ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
-    params: TopClientParams
+    params: TopClientParams,
 ) -> Reply {
     reply_result(get_top_clients(ftl_memory, &env, params))
 }
@@ -41,7 +41,7 @@ pub struct TopClientParams {
     pub limit: Option<usize>,
     pub inactive: Option<bool>,
     pub ascending: Option<bool>,
-    pub blocked: Option<bool>
+    pub blocked: Option<bool>,
 }
 
 /// Represents the reply structure for top (blocked) clients
@@ -52,7 +52,7 @@ pub struct TopClientsReply {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_queries: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub blocked_queries: Option<usize>
+    pub blocked_queries: Option<usize>,
 }
 
 /// Represents the reply structure for a top (blocked) client item
@@ -61,14 +61,14 @@ pub struct TopClientsReply {
 pub struct TopClientItemReply {
     pub name: String,
     pub ip: String,
-    pub count: usize
+    pub count: usize,
 }
 
 /// Get the top clients according to the parameters
 fn get_top_clients(
     ftl_memory: &FtlMemory,
     env: &Env,
-    params: TopClientParams
+    params: TopClientParams,
 ) -> Result<TopClientsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
@@ -119,7 +119,7 @@ fn get_top_clients(
         (false, false) => clients.sort_by(|a, b| b.query_count.cmp(&a.query_count)),
         (true, false) => clients.sort_by(|a, b| a.query_count.cmp(&b.query_count)),
         (false, true) => clients.sort_by(|a, b| b.blocked_count.cmp(&a.blocked_count)),
-        (true, true) => clients.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count))
+        (true, true) => clients.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count)),
     }
 
     // Take into account the limit
@@ -148,13 +148,13 @@ fn get_top_clients(
         Ok(TopClientsReply {
             top_clients,
             total_queries: None,
-            blocked_queries: Some(counters.blocked_queries as usize)
+            blocked_queries: Some(counters.blocked_queries as usize),
         })
     } else {
         Ok(TopClientsReply {
             top_clients,
             total_queries: Some(counters.total_queries as usize),
-            blocked_queries: None
+            blocked_queries: None,
         })
     }
 }
@@ -164,7 +164,7 @@ fn get_top_clients(
 pub fn check_privacy_level_top_clients(
     env: &Env,
     blocked: bool,
-    count: usize
+    count: usize,
 ) -> Result<Option<TopClientsReply>, Error> {
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
         >= FtlPrivacyLevel::HideDomainsAndClients
@@ -173,13 +173,13 @@ pub fn check_privacy_level_top_clients(
             Ok(Some(TopClientsReply {
                 top_clients: Vec::new(),
                 total_queries: None,
-                blocked_queries: Some(count)
+                blocked_queries: Some(count),
             }))
         } else {
             Ok(Some(TopClientsReply {
                 top_clients: Vec::new(),
                 total_queries: Some(count),
-                blocked_queries: None
+                blocked_queries: None,
             }))
         };
     }
@@ -192,7 +192,7 @@ mod test {
     use crate::{
         env::PiholeFile,
         ftl::{FtlClient, FtlCounters, FtlMemory, FtlSettings},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use std::collections::HashMap;
 
@@ -228,7 +228,7 @@ mod test {
                 total_clients: 6,
                 ..FtlCounters::default()
             },
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 
@@ -367,7 +367,7 @@ mod test {
             .ftl_memory(test_data())
             .file(
                 PiholeFile::SetupVars,
-                "API_EXCLUDE_CLIENTS=client3,10.1.1.2"
+                "API_EXCLUDE_CLIENTS=client3,10.1.1.2",
             )
             .file(PiholeFile::FtlConfig, "")
             .expect_json(json!({

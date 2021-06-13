@@ -11,12 +11,12 @@
 use crate::{
     env::{Env, PiholeFile},
     settings::{get_ipv6_address_and_port, ConfigEntry, SetupVarsEntry},
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::ResultExt;
 use std::{
     fs::File,
-    io::{BufWriter, Write}
+    io::{BufWriter, Write},
 };
 
 const DNSMASQ_HEADER: &str = "\
@@ -122,7 +122,7 @@ fn write_dns_options(config_file: &mut BufWriter<File>, env: &Env) -> Result<(),
             .write_all(
                 b"log-queries\n\
             log-facility=/var/log/pihole.log\n\
-            log-async\n"
+            log-async\n",
             )
             .context(ErrorKind::DnsmasqConfigWrite)?;
     }
@@ -252,16 +252,16 @@ fn write_dhcp(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Error>
 mod tests {
     use super::{
         open_config, write_dhcp, write_dns_options, write_header, write_lists, write_servers,
-        DNSMASQ_HEADER
+        DNSMASQ_HEADER,
     };
     use crate::{
         env::{Env, PiholeFile},
         testing::TestEnvBuilder,
-        util::Error
+        util::Error,
     };
     use std::{
         fs::File,
-        io::{BufWriter, Write}
+        io::{BufWriter, Write},
     };
 
     /// Generalized test for dnsmasq config generation. This sets up SetupVars
@@ -277,7 +277,7 @@ mod tests {
     fn test_config(
         expected_config: &str,
         setup_vars: &str,
-        test_fn: impl Fn(&mut BufWriter<File>, &Env) -> Result<(), Error>
+        test_fn: impl Fn(&mut BufWriter<File>, &Env) -> Result<(), Error>,
     ) {
         let env_builder = TestEnvBuilder::new()
             .file_expect(PiholeFile::DnsmasqConfig, "", expected_config)
@@ -307,7 +307,7 @@ mod tests {
             "server=8.8.8.8\nserver=8.8.4.4\n",
             "PIHOLE_DNS_1=8.8.8.8\n\
              PIHOLE_DNS_2=8.8.4.4",
-            write_servers
+            write_servers,
         );
     }
 
@@ -317,7 +317,7 @@ mod tests {
         test_config(
             "server=127.0.0.1#5353\n",
             "PIHOLE_DNS_1=127.0.0.1:5353",
-            write_servers
+            write_servers,
         );
     }
 
@@ -327,7 +327,7 @@ mod tests {
         test_config(
             "server=f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c\n",
             "PIHOLE_DNS_1=f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c",
-            write_servers
+            write_servers,
         )
     }
 
@@ -337,7 +337,7 @@ mod tests {
         test_config(
             "server=1fff:0:a88:85a3::ac1f#8001\n",
             "PIHOLE_DNS_1=[1fff:0:a88:85a3::ac1f]:8001",
-            write_servers
+            write_servers,
         )
     }
 
@@ -350,7 +350,7 @@ mod tests {
             "PIHOLE_DNS_1=8.8.8.8\n\
              PIHOLE_DNS_2=8.8.4.4\n\
              PIHOLE_DNS_4=1.1.1.1",
-            write_servers
+            write_servers,
         );
     }
 
@@ -362,7 +362,7 @@ mod tests {
              addn-hosts=/etc/pihole/black.list\n\
              addn-hosts=/etc/pihole/local.list\n",
             "",
-            |config, _| write_lists(config)
+            |config, _| write_lists(config),
         );
     }
 
@@ -379,7 +379,7 @@ mod tests {
              DNSMASQ_LISTENING=single\n\
              PIHOLE_INTERFACE=eth0\n\
              CONDITIONAL_FORWARDING=false",
-            write_dns_options
+            write_dns_options,
         );
     }
 
@@ -422,7 +422,7 @@ mod tests {
              DHCP_LEASETIME=24\n\
              PIHOLE_DOMAIN=lan\n\
              DHCP_IPv6=false",
-            write_dhcp
+            write_dhcp,
         )
     }
 
@@ -449,7 +449,7 @@ mod tests {
              PIHOLE_DOMAIN=lan\n\
              DHCP_rapid_commit=true\n\
              DHCP_IPv6=false",
-            write_dhcp
+            write_dhcp,
         )
     }
 
@@ -477,7 +477,7 @@ mod tests {
              DHCP_LEASETIME=24\n\
              PIHOLE_DOMAIN=lan\n\
              DHCP_IPv6=true",
-            write_dhcp
+            write_dhcp,
         )
     }
 
@@ -506,7 +506,7 @@ mod tests {
              DHCP_LEASETIME=0\n\
              PIHOLE_DOMAIN=lan\n\
              DHCP_IPv6=true",
-            write_dhcp
+            write_dhcp,
         )
     }
 }

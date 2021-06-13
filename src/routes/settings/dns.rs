@@ -13,7 +13,7 @@ use crate::{
     routes::{auth::User, settings::common::restart_dns},
     services::PiholeModule,
     settings::{generate_dnsmasq_config, ConfigEntry, SetupVarsEntry, ValueType},
-    util::{reply_data, reply_success, Error, ErrorKind, Reply}
+    util::{reply_data, reply_success, Error, ErrorKind, Reply},
 };
 use rocket::serde::json::Json;
 use shaku_rocket::Inject;
@@ -22,7 +22,7 @@ use shaku_rocket::Inject;
 pub struct DnsSettings {
     upstream_dns: Vec<String>,
     options: DnsOptions,
-    conditional_forwarding: DnsConditionalForwarding
+    conditional_forwarding: DnsConditionalForwarding,
 }
 
 impl DnsSettings {
@@ -41,7 +41,7 @@ pub struct DnsOptions {
     fqdn_required: bool,
     bogus_priv: bool,
     dnssec: bool,
-    listening_type: String
+    listening_type: String,
 }
 
 impl DnsOptions {
@@ -62,7 +62,7 @@ pub struct DnsConditionalForwarding {
     /// The domain to conditionally forward
     domain: String,
     /// The CIDR range of addresses to forward
-    cidr: usize
+    cidr: usize,
 }
 
 impl DnsConditionalForwarding {
@@ -110,14 +110,14 @@ pub fn get_dns(env: Inject<PiholeModule, Env>, _auth: User) -> Reply {
             fqdn_required: SetupVarsEntry::DnsFqdnRequired.is_true(&env)?,
             bogus_priv: SetupVarsEntry::DnsBogusPriv.is_true(&env)?,
             dnssec: SetupVarsEntry::Dnssec.is_true(&env)?,
-            listening_type: SetupVarsEntry::DnsmasqListening.read(&env)?
+            listening_type: SetupVarsEntry::DnsmasqListening.read(&env)?,
         },
         conditional_forwarding: DnsConditionalForwarding {
             enabled: SetupVarsEntry::ConditionalForwarding.is_true(&env)?,
             ip: SetupVarsEntry::ConditionalForwardingIp.read(&env)?,
             domain: SetupVarsEntry::ConditionalForwardingDomain.read(&env)?,
-            cidr: SetupVarsEntry::ConditionalForwardingCIDR.read_as(&env)?
-        }
+            cidr: SetupVarsEntry::ConditionalForwardingCIDR.read_as(&env)?,
+        },
     };
 
     reply_data(dns_settings)
@@ -187,7 +187,7 @@ mod test {
                  CONDITIONAL_FORWARDING=true\n\
                  CONDITIONAL_FORWARDING_IP=192.168.1.1\n\
                  CONDITIONAL_FORWARDING_DOMAIN=hub\n\
-                 CONDITIONAL_FORWARDING_CIDR=24\n"
+                 CONDITIONAL_FORWARDING_CIDR=24\n",
             )
             .expect_json(json!({
                 "conditional_forwarding": {

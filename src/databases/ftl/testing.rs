@@ -11,7 +11,7 @@
 use crate::databases::{
     common::{create_memory_db, start_test_transaction},
     custom_connection::CustomSqliteConnectionManager,
-    ftl::FtlDatabase
+    ftl::FtlDatabase,
 };
 use diesel::{r2d2::Pool, SqliteConnection};
 

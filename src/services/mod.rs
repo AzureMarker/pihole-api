@@ -14,10 +14,10 @@ pub mod lists;
 use crate::{
     databases::{
         ftl::{FtlDatabase, FtlDatabasePool},
-        gravity::{GravityDatabase, GravityDatabasePool}
+        gravity::{GravityDatabase, GravityDatabasePool},
     },
     env::Env,
-    ftl::FtlConnectionType
+    ftl::FtlConnectionType,
 };
 use domain_audit::DomainAuditRepositoryImpl;
 use lists::{ListRepositoryImpl, ListServiceImpl};

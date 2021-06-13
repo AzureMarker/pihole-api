@@ -15,7 +15,7 @@ use std::{
     collections::VecDeque,
     sync::mpsc::{Receiver, Sender},
     thread,
-    time::Duration
+    time::Duration,
 };
 
 /// The filename of the shared memory, used to connect to the shared memory
@@ -37,14 +37,14 @@ fn open_shm_lock() -> Result<Map<FtlLock>, Error> {
 #[derive(Debug, PartialEq)]
 pub enum RequestType {
     Lock,
-    Unlock
+    Unlock,
 }
 
 /// The lock thread handler. This thread takes in lock requests and keeps track
 /// of open read locks.
 pub struct LockThread {
     pub(self) lock_count: usize,
-    pub(self) wait_queue: VecDeque<Sender<LockResponse>>
+    pub(self) wait_queue: VecDeque<Sender<LockResponse>>,
 }
 
 impl LockThread {
@@ -55,7 +55,7 @@ impl LockThread {
     pub fn new() -> LockThread {
         LockThread {
             lock_count: 0,
-            wait_queue: VecDeque::new()
+            wait_queue: VecDeque::new(),
         }
     }
 
@@ -73,7 +73,7 @@ impl LockThread {
 
             match request_type {
                 RequestType::Lock => self.lock(&mut shm_lock, response_sender),
-                RequestType::Unlock => self.unlock(&mut shm_lock, response_sender)
+                RequestType::Unlock => self.unlock(&mut shm_lock, response_sender),
             }
         }
     }
@@ -178,7 +178,7 @@ mod test {
     use crate::ftl::{lock_thread::LockThread, memory_model::FtlLock};
     use libc::{
         pthread_mutex_destroy, pthread_mutex_lock, pthread_mutex_t, pthread_mutex_trylock,
-        pthread_mutex_unlock, EBUSY, PTHREAD_MUTEX_INITIALIZER
+        pthread_mutex_unlock, EBUSY, PTHREAD_MUTEX_INITIALIZER,
     };
     use std::sync::mpsc::channel;
 
@@ -204,7 +204,7 @@ mod test {
         let mut lock_thread = LockThread::new();
         let mut ftl_lock = FtlLock {
             lock: PTHREAD_MUTEX_INITIALIZER,
-            ftl_waiting_for_lock: false
+            ftl_waiting_for_lock: false,
         };
         let (sender, receiver) = channel();
 
@@ -232,7 +232,7 @@ mod test {
         let mut lock_thread = LockThread::new();
         let mut ftl_lock = FtlLock {
             lock: PTHREAD_MUTEX_INITIALIZER,
-            ftl_waiting_for_lock: false
+            ftl_waiting_for_lock: false,
         };
         let (sender, receiver) = channel();
 
@@ -262,7 +262,7 @@ mod test {
         let mut lock_thread = LockThread::new();
         let mut ftl_lock = FtlLock {
             lock: PTHREAD_MUTEX_INITIALIZER,
-            ftl_waiting_for_lock: true
+            ftl_waiting_for_lock: true,
         };
         let (sender, receiver) = channel();
 
@@ -293,7 +293,7 @@ mod test {
         let mut lock_thread = LockThread::new();
         let mut ftl_lock = FtlLock {
             lock: PTHREAD_MUTEX_INITIALIZER,
-            ftl_waiting_for_lock: true
+            ftl_waiting_for_lock: true,
         };
         let (sender, receiver) = channel();
 
@@ -327,7 +327,7 @@ mod test {
         let mut lock_thread = LockThread::new();
         let mut ftl_lock = FtlLock {
             lock: PTHREAD_MUTEX_INITIALIZER,
-            ftl_waiting_for_lock: false
+            ftl_waiting_for_lock: false,
         };
         let (sender, receiver) = channel();
 
@@ -357,7 +357,7 @@ mod test {
         let mut lock_thread = LockThread::new();
         let mut ftl_lock = FtlLock {
             lock: PTHREAD_MUTEX_INITIALIZER,
-            ftl_waiting_for_lock: false
+            ftl_waiting_for_lock: false,
         };
         let (sender, receiver) = channel();
 
@@ -387,7 +387,7 @@ mod test {
         let mut lock_thread = LockThread::new();
         let mut ftl_lock = FtlLock {
             lock: PTHREAD_MUTEX_INITIALIZER,
-            ftl_waiting_for_lock: true
+            ftl_waiting_for_lock: true,
         };
         let (sender, receiver) = channel();
 
@@ -419,7 +419,7 @@ mod test {
         let mut lock_thread = LockThread::new();
         let mut ftl_lock = FtlLock {
             lock: PTHREAD_MUTEX_INITIALIZER,
-            ftl_waiting_for_lock: false
+            ftl_waiting_for_lock: false,
         };
         let (sender, receiver) = channel();
         let (queued_sender, queued_receiver) = channel();

@@ -12,13 +12,13 @@ use crate::{
     env::Env,
     ftl::FtlConnectionType,
     services::lists::{List, ListRepository},
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::ResultExt;
 use shaku::Provider;
 use std::{
     process::{Command, Stdio},
-    sync::Arc
+    sync::Arc,
 };
 
 /// Describes interactions with the Pi-hole domain lists (whitelist, blacklist,
@@ -45,7 +45,7 @@ pub struct ListServiceImpl {
     #[shaku(inject)]
     env: Arc<Env>,
     #[shaku(inject)]
-    ftl: Arc<FtlConnectionType>
+    ftl: Arc<FtlConnectionType>,
 }
 
 impl ListService for ListServiceImpl {
@@ -189,7 +189,7 @@ mod test {
     use crate::{
         ftl::FtlConnectionType,
         services::lists::{ListService, ListServiceImpl, MockListRepository},
-        testing::{write_eom, TestEnvBuilder}
+        testing::{write_eom, TestEnvBuilder},
     };
     use mockall::predicate::*;
     use std::{collections::HashMap, sync::Arc};
@@ -217,7 +217,7 @@ mod test {
         let service = ListServiceImpl {
             repo: Box::new(repo),
             env: Arc::new(env),
-            ftl: Arc::new(ftl)
+            ftl: Arc::new(ftl),
         };
 
         assert_eq!(service.get(list).unwrap(), vec![domain.to_owned()]);
@@ -239,7 +239,7 @@ mod test {
         let service = ListServiceImpl {
             repo: Box::new(repo),
             env: Arc::new(env),
-            ftl: Arc::new(ftl)
+            ftl: Arc::new(ftl),
         };
 
         service.remove(list, domain).unwrap();
@@ -274,7 +274,7 @@ mod test {
         let service = ListServiceImpl {
             repo: Box::new(repo),
             env: Arc::new(env),
-            ftl: Arc::new(ftl)
+            ftl: Arc::new(ftl),
         };
 
         service.add(List::White, "example.com").unwrap();
@@ -301,7 +301,7 @@ mod test {
         let service = ListServiceImpl {
             repo: Box::new(repo),
             env: Arc::new(env),
-            ftl: Arc::new(ftl)
+            ftl: Arc::new(ftl),
         };
 
         service.add(List::Black, "example.com").unwrap();
@@ -325,7 +325,7 @@ mod test {
         let service = ListServiceImpl {
             repo: Box::new(repo),
             env: Arc::new(env),
-            ftl: Arc::new(ftl)
+            ftl: Arc::new(ftl),
         };
 
         service.add(List::Regex, "example.com").unwrap();

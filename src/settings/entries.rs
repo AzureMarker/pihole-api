@@ -11,13 +11,13 @@
 use crate::{
     env::{Env, PiholeFile},
     settings::value_type::ValueType,
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::{Fail, ResultExt};
 use std::{
     borrow::Cow,
     io::{self, prelude::*, BufWriter},
-    str::FromStr
+    str::FromStr,
 };
 
 /// Common functions for a configuration entry
@@ -49,7 +49,7 @@ pub trait ConfigEntry {
     /// If it is unable to be parsed into `T`, an error is returned.
     fn read_as<T: FromStr>(&self, env: &Env) -> Result<T, Error>
     where
-        <T as FromStr>::Err: Fail
+        <T as FromStr>::Err: Fail,
     {
         self.read(env)?
             .parse::<T>()
@@ -115,8 +115,8 @@ pub trait ConfigEntry {
                             } else {
                                 item.to_owned()
                             }
-                        }
-                    )
+                        },
+                    ),
                 );
             }
         }
@@ -154,7 +154,7 @@ pub trait ConfigEntry {
         // This way it is not allocating for errors at all, unless an error is thrown.
         let apply_context = |error: io::Error| {
             error.context(ErrorKind::FileWrite(
-                env.file_location(self.file()).to_owned()
+                env.file_location(self.file()).to_owned(),
             ))
         };
 
@@ -209,7 +209,7 @@ pub enum SetupVarsEntry {
     QueryLogging,
     WebPassword,
     WebLayout,
-    WebLanguage
+    WebLanguage,
 }
 
 impl ConfigEntry for SetupVarsEntry {
@@ -251,7 +251,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::QueryLogging => Cow::Borrowed("QUERY_LOGGING"),
             SetupVarsEntry::WebPassword => Cow::Borrowed("WEBPASSWORD"),
             SetupVarsEntry::WebLayout => Cow::Borrowed("WEBUIBOXEDLAYOUT"),
-            SetupVarsEntry::WebLanguage => Cow::Borrowed("WEB_LANGUAGE")
+            SetupVarsEntry::WebLanguage => Cow::Borrowed("WEB_LANGUAGE"),
         }
     }
 
@@ -295,7 +295,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::QueryLogging => ValueType::Boolean,
             SetupVarsEntry::WebPassword => ValueType::WebPassword,
             SetupVarsEntry::WebLayout => ValueType::String(&["boxed", "traditional"]),
-            SetupVarsEntry::WebLanguage => ValueType::LanguageCode
+            SetupVarsEntry::WebLanguage => ValueType::LanguageCode,
         }
     }
 
@@ -329,7 +329,7 @@ impl ConfigEntry for SetupVarsEntry {
             SetupVarsEntry::QueryLogging => "false",
             SetupVarsEntry::WebPassword => "",
             SetupVarsEntry::WebLayout => "boxed",
-            SetupVarsEntry::WebLanguage => "en"
+            SetupVarsEntry::WebLanguage => "en",
         }
     }
 }
@@ -350,7 +350,7 @@ impl SetupVarsEntry {
         // This way it is not allocating for errors at all, unless an error is thrown.
         let apply_context = |error: io::Error| {
             error.context(ErrorKind::FileWrite(
-                env.file_location(PiholeFile::SetupVars).to_owned()
+                env.file_location(PiholeFile::SetupVars).to_owned(),
             ))
         };
 
@@ -385,7 +385,7 @@ pub enum FtlConfEntry {
     RegexDebugMode,
     ResolveIpv4,
     ResolveIpv6,
-    SocketListening
+    SocketListening,
 }
 
 impl ConfigEntry for FtlConfEntry {
@@ -409,7 +409,7 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::RegexDebugMode => "REGEX_DEBUGMODE",
             FtlConfEntry::ResolveIpv4 => "RESOLVE_IPV6",
             FtlConfEntry::ResolveIpv6 => "RESOLVE_IPV6",
-            FtlConfEntry::SocketListening => "SOCKET_LISTENING"
+            FtlConfEntry::SocketListening => "SOCKET_LISTENING",
         })
     }
 
@@ -431,7 +431,7 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::RegexDebugMode => ValueType::Boolean,
             FtlConfEntry::ResolveIpv4 => ValueType::YesNo,
             FtlConfEntry::ResolveIpv6 => ValueType::YesNo,
-            FtlConfEntry::SocketListening => ValueType::String(&["localonly", "all"])
+            FtlConfEntry::SocketListening => ValueType::String(&["localonly", "all"]),
         }
     }
 
@@ -451,7 +451,7 @@ impl ConfigEntry for FtlConfEntry {
             FtlConfEntry::RegexDebugMode => "false",
             FtlConfEntry::ResolveIpv4 => "yes",
             FtlConfEntry::ResolveIpv6 => "yes",
-            FtlConfEntry::SocketListening => "localonly"
+            FtlConfEntry::SocketListening => "localonly",
         }
     }
 }
@@ -461,7 +461,7 @@ mod tests {
     use super::{ConfigEntry, SetupVarsEntry};
     use crate::{
         env::{Env, PiholeFile},
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
 
     /// Run a test with a single file.
@@ -472,7 +472,7 @@ mod tests {
         file: PiholeFile,
         initial_data: &str,
         expected_data: &str,
-        test_fn: impl FnOnce(Env)
+        test_fn: impl FnOnce(Env),
     ) {
         // Create the environment
         let env_builder = TestEnvBuilder::new().file_expect(file, initial_data, expected_data);
@@ -499,7 +499,7 @@ mod tests {
              PIHOLE_DNS_1=2.2.2.2\n",
             |env| {
                 SetupVarsEntry::PiholeDns(1).write("2.2.2.2", &env).unwrap();
-            }
+            },
         );
     }
 
@@ -521,7 +521,7 @@ mod tests {
             "PIHOLE_DNS_1=5.6.7.8\n",
             |env| {
                 SetupVarsEntry::PiholeDns(1).write("5.6.7.8", &env).unwrap();
-            }
+            },
         );
     }
 
@@ -535,7 +535,7 @@ mod tests {
             "PIHOLE_DNS_1=1.2.3.4\n",
             |env| {
                 SetupVarsEntry::PiholeDns(1).write("1.2.3.4", &env).unwrap();
-            }
+            },
         );
     }
 

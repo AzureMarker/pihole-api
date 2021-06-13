@@ -11,9 +11,9 @@
 use crate::{
     ftl::{
         FtlClient, FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-        FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, FtlUpstream, MAGIC_BYTE
+        FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, FtlUpstream, MAGIC_BYTE,
     },
-    settings::FtlPrivacyLevel
+    settings::FtlPrivacyLevel,
 };
 use std::collections::HashMap;
 
@@ -45,7 +45,7 @@ macro_rules! query {
             reply_type: FtlQueryReplyType::IP,
             dnssec_type: FtlDnssecType::Unspecified,
             is_complete: true,
-            privacy_level: FtlPrivacyLevel::$private
+            privacy_level: FtlPrivacyLevel::$private,
         }
     };
 }
@@ -60,7 +60,7 @@ pub fn test_memory() -> FtlMemory {
         strings: test_strings(),
         queries: test_queries(),
         upstreams: test_upstreams(),
-        settings: FtlSettings::default()
+        settings: FtlSettings::default(),
     }
 }
 
@@ -98,7 +98,7 @@ pub fn test_queries() -> Vec<FtlQuery> {
             reply_type: FtlQueryReplyType::CNAME,
             dnssec_type: FtlDnssecType::Secure,
             is_complete: true,
-            privacy_level: FtlPrivacyLevel::ShowAll
+            privacy_level: FtlPrivacyLevel::ShowAll,
         },
         query!(2, 96, AAAA, Forward, 0, 0, 0, 263_582, ShowAll),
         query!(3, 97, PTR, Forward, 0, 0, 0, 263_583, ShowAll),

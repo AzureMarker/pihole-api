@@ -11,7 +11,7 @@
 use crate::{
     ftl::{FtlMemory, FtlUpstream},
     routes::auth::User,
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
 use rocket::State;
 
@@ -42,12 +42,12 @@ pub fn upstreams(_auth: User, ftl_memory: &State<FtlMemory>) -> Reply {
     upstreams.push(UpstreamItemReply {
         name: "blocklist".to_owned(),
         ip: "blocklist".to_owned(),
-        count: counters.blocked_queries as usize
+        count: counters.blocked_queries as usize,
     });
     upstreams.push(UpstreamItemReply {
         name: "cache".to_owned(),
         ip: "cache".to_owned(),
-        count: counters.cached_queries as usize
+        count: counters.cached_queries as usize,
     });
 
     // Map the upstreams into the output format
@@ -58,14 +58,14 @@ pub fn upstreams(_auth: User, ftl_memory: &State<FtlMemory>) -> Reply {
         UpstreamItemReply {
             name,
             ip,
-            count: upstream.query_count as usize
+            count: upstream.query_count as usize,
         }
     }));
 
     reply_data(UpstreamsReply {
         upstreams,
         forwarded_queries: counters.forwarded_queries as usize,
-        total_queries: counters.total_queries as usize
+        total_queries: counters.total_queries as usize,
     })
 }
 
@@ -75,7 +75,7 @@ pub fn upstreams(_auth: User, ftl_memory: &State<FtlMemory>) -> Reply {
 pub struct UpstreamItemReply {
     pub name: String,
     pub ip: String,
-    pub count: usize
+    pub count: usize,
 }
 
 /// Represents the reply structure for upstreams endpoints
@@ -84,14 +84,14 @@ pub struct UpstreamItemReply {
 pub struct UpstreamsReply {
     pub upstreams: Vec<UpstreamItemReply>,
     pub forwarded_queries: usize,
-    pub total_queries: usize
+    pub total_queries: usize,
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
         ftl::{FtlCounters, FtlMemory, FtlSettings, FtlUpstream},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use std::collections::HashMap;
 
@@ -133,7 +133,7 @@ mod test {
                 domains: Vec::new(),
                 over_time: Vec::new(),
                 queries: Vec::new(),
-                settings: FtlSettings::default()
+                settings: FtlSettings::default(),
             })
             .expect_json(json!({
                 "upstreams": [
@@ -172,7 +172,7 @@ mod test {
                 domains: Vec::new(),
                 over_time: Vec::new(),
                 queries: Vec::new(),
-                settings: FtlSettings::default()
+                settings: FtlSettings::default(),
             })
             .expect_json(json!({
                 "upstreams": [

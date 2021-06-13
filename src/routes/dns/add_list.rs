@@ -12,9 +12,9 @@ use crate::{
     routes::auth::User,
     services::{
         lists::{List, ListService},
-        PiholeModule
+        PiholeModule,
     },
-    util::{reply_success, Reply}
+    util::{reply_success, Reply},
 };
 use rocket::serde::json::Json;
 use shaku_rocket::InjectProvided;
@@ -22,7 +22,7 @@ use shaku_rocket::InjectProvided;
 /// Represents an API input containing a domain
 #[derive(Deserialize)]
 pub struct DomainInput {
-    domain: String
+    domain: String,
 }
 
 /// Add a domain to the whitelist
@@ -30,7 +30,7 @@ pub struct DomainInput {
 pub fn add_whitelist(
     _auth: User,
     list_service: InjectProvided<PiholeModule, dyn ListService>,
-    domain_input: Json<DomainInput>
+    domain_input: Json<DomainInput>,
 ) -> Reply {
     list_service.add(List::White, &domain_input.0.domain)?;
     reply_success()
@@ -41,7 +41,7 @@ pub fn add_whitelist(
 pub fn add_blacklist(
     _auth: User,
     list_service: InjectProvided<PiholeModule, dyn ListService>,
-    domain_input: Json<DomainInput>
+    domain_input: Json<DomainInput>,
 ) -> Reply {
     list_service.add(List::Black, &domain_input.0.domain)?;
     reply_success()
@@ -52,7 +52,7 @@ pub fn add_blacklist(
 pub fn add_regexlist(
     _auth: User,
     list_service: InjectProvided<PiholeModule, dyn ListService>,
-    domain_input: Json<DomainInput>
+    domain_input: Json<DomainInput>,
 ) -> Reply {
     list_service.add(List::Regex, &domain_input.0.domain)?;
     reply_success()
@@ -62,7 +62,7 @@ pub fn add_regexlist(
 mod test {
     use crate::{
         services::lists::{List, ListService, MockListService},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use mockall::predicate::*;
     use rocket::http::Method;

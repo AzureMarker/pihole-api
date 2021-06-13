@@ -12,7 +12,7 @@ use super::{
     endpoints::{HistoryCursor, HistoryParams},
     filters::*,
     map_query_to_json::map_query_to_json,
-    skip_to_cursor::skip_to_cursor
+    skip_to_cursor::skip_to_cursor,
 };
 use crate::{
     databases::ftl::FtlDatabase,
@@ -20,7 +20,7 @@ use crate::{
     ftl::{FtlMemory, FtlQuery},
     routes::stats::history::{database::load_queries_from_database, HistoryReply, QueryReply},
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::Error
+    util::Error,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -29,13 +29,13 @@ pub fn get_history(
     ftl_memory: &FtlMemory,
     env: &Env,
     params: HistoryParams,
-    db: &FtlDatabase
+    db: &FtlDatabase,
 ) -> Result<HistoryReply, Error> {
     // Check if query details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(env)? >= FtlPrivacyLevel::Maximum {
         return Ok(HistoryReply {
             history: Vec::new(),
-            cursor: None
+            cursor: None,
         });
     }
 
@@ -66,7 +66,7 @@ pub fn get_history(
             // Get the most recent queries first
             .rev()
             // Skip the uninitialized queries
-            .skip(queries.len() - counters.total_queries as usize)
+            .skip(queries.len() - counters.total_queries as usize),
     );
 
     // If there is a cursor, skip to the referenced query
@@ -162,7 +162,7 @@ pub fn get_history(
 
     Ok(HistoryReply {
         history,
-        cursor: next_cursor
+        cursor: next_cursor,
     })
 }
 
@@ -199,9 +199,9 @@ mod test {
             get_history::get_history,
             map_query_to_json::map_query_to_json,
             testing::{test_memory, test_queries},
-            HistoryParams, HistoryReply, QueryReply
+            HistoryParams, HistoryReply, QueryReply,
         },
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
 
     /// The default behavior lists the first 100 non-private queries sorted by
@@ -227,14 +227,14 @@ mod test {
 
         let expected = HistoryReply {
             history,
-            cursor: None
+            cursor: None,
         };
 
         let actual = get_history(
             &ftl_memory,
             &env,
             HistoryParams::default(),
-            &connect_to_ftl_test_db()
+            &connect_to_ftl_test_db(),
         )
         .unwrap();
 
@@ -269,7 +269,7 @@ mod test {
 
         let expected = HistoryReply {
             history,
-            cursor: Some("eyJpZCI6bnVsbCwiZGJfaWQiOjk3fQ==".to_owned())
+            cursor: Some("eyJpZCI6bnVsbCwiZGJfaWQiOjk3fQ==".to_owned()),
         };
 
         let actual = get_history(&ftl_memory, &env, params, &connect_to_ftl_test_db()).unwrap();
@@ -286,14 +286,14 @@ mod test {
 
         let expected = HistoryReply {
             history: Vec::new(),
-            cursor: None
+            cursor: None,
         };
 
         let actual = get_history(
             &test_memory(),
             &env,
             HistoryParams::default(),
-            &connect_to_ftl_test_db()
+            &connect_to_ftl_test_db(),
         )
         .unwrap();
 
@@ -312,7 +312,7 @@ mod test {
                 client: "127.0.0.1".to_owned(),
                 dnssec: 5,
                 reply: 0,
-                response_time: 0
+                response_time: 0,
             },
             QueryReply {
                 timestamp: 177_180,
@@ -322,7 +322,7 @@ mod test {
                 client: "127.0.0.1".to_owned(),
                 dnssec: 5,
                 reply: 0,
-                response_time: 0
+                response_time: 0,
             },
         ];
 
@@ -339,7 +339,7 @@ mod test {
 
         let expected = HistoryReply {
             history,
-            cursor: None
+            cursor: None,
         };
 
         let actual = get_history(&test_memory(), &env, params, &connect_to_ftl_test_db()).unwrap();

@@ -12,7 +12,7 @@ use crate::{
     databases::ftl::queries,
     ftl::{FtlMemory, FtlQuery, FtlQueryStatus, ShmLockGuard},
     routes::stats::history::endpoints::HistoryParams,
-    util::Error
+    util::Error,
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 use std::{collections::HashSet, iter};
@@ -22,7 +22,7 @@ pub fn filter_upstream<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     params: &HistoryParams,
     ftl_memory: &FtlMemory,
-    ftl_lock: &ShmLockGuard<'a>
+    ftl_lock: &ShmLockGuard<'a>,
 ) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     if let Some(ref upstream) = params.upstream {
         if upstream == "blocklist" {
@@ -30,11 +30,11 @@ pub fn filter_upstream<'a>(
                 FtlQueryStatus::Gravity | FtlQueryStatus::Blacklist | FtlQueryStatus::Wildcard => {
                     true
                 }
-                _ => false
+                _ => false,
             })))
         } else if upstream == "cache" {
             Ok(Box::new(
-                queries_iter.filter(|query| query.status == FtlQueryStatus::Cache)
+                queries_iter.filter(|query| query.status == FtlQueryStatus::Cache),
             ))
         } else {
             // Find the matching upstreams. If none are found, return an empty
@@ -74,7 +74,7 @@ pub fn filter_upstream<'a>(
 /// Only show queries from the specified upstream in database results
 pub fn filter_upstream_db<'a>(
     db_query: queries::BoxedQuery<'a, Sqlite>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> queries::BoxedQuery<'a, Sqlite> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -95,8 +95,8 @@ mod test {
         routes::stats::history::{
             database::execute_query,
             endpoints::HistoryParams,
-            testing::{test_memory, test_queries}
-        }
+            testing::{test_memory, test_queries},
+        },
     };
     use diesel::prelude::*;
 
@@ -112,7 +112,7 @@ mod test {
                 ..HistoryParams::default()
             },
             &test_memory(),
-            &ShmLockGuard::Test
+            &ShmLockGuard::Test,
         )
         .unwrap()
         .collect();
@@ -133,7 +133,7 @@ mod test {
                 ..HistoryParams::default()
             },
             &test_memory(),
-            &ShmLockGuard::Test
+            &ShmLockGuard::Test,
         )
         .unwrap()
         .collect();
@@ -153,7 +153,7 @@ mod test {
                 ..HistoryParams::default()
             },
             &test_memory(),
-            &ShmLockGuard::Test
+            &ShmLockGuard::Test,
         )
         .unwrap()
         .collect();
@@ -174,7 +174,7 @@ mod test {
                 ..HistoryParams::default()
             },
             &test_memory(),
-            &ShmLockGuard::Test
+            &ShmLockGuard::Test,
         )
         .unwrap()
         .collect();

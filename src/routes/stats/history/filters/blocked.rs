@@ -11,14 +11,14 @@
 use crate::{
     databases::ftl::queries,
     ftl::{FtlQuery, BLOCKED_STATUSES},
-    routes::stats::history::endpoints::HistoryParams
+    routes::stats::history::endpoints::HistoryParams,
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 
 /// Only show allowed/blocked queries
 pub fn filter_blocked<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(blocked) = params.blocked {
         if blocked {
@@ -34,7 +34,7 @@ pub fn filter_blocked<'a>(
 /// Only show allowed/blocked queries in database results
 pub fn filter_blocked_db<'a>(
     db_query: queries::BoxedQuery<'a, Sqlite>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> queries::BoxedQuery<'a, Sqlite> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -57,8 +57,8 @@ mod test {
         databases::ftl::connect_to_ftl_test_db,
         ftl::{FtlQuery, BLOCKED_STATUSES},
         routes::stats::history::{
-            database::execute_query, endpoints::HistoryParams, testing::test_queries
-        }
+            database::execute_query, endpoints::HistoryParams, testing::test_queries,
+        },
     };
     use diesel::prelude::*;
 
@@ -72,7 +72,7 @@ mod test {
             &HistoryParams {
                 blocked: Some(true),
                 ..HistoryParams::default()
-            }
+            },
         )
         .collect();
 

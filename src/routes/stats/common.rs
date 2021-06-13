@@ -12,11 +12,11 @@ use crate::{
     env::Env,
     ftl::{FtlClient, FtlDomain, FtlOverTime, FtlStrings, OVERTIME_SLOTS},
     settings::{ConfigEntry, SetupVarsEntry},
-    util::Error
+    util::Error,
 };
 use std::{
     collections::HashSet,
-    time::{SystemTime, UNIX_EPOCH}
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 /// The designated hidden domain
@@ -33,7 +33,7 @@ pub const HIDDEN_CLIENT: &str = "0.0.0.0";
 pub fn remove_excluded_clients(
     clients: &mut Vec<&FtlClient>,
     env: &Env,
-    strings: &FtlStrings
+    strings: &FtlStrings,
 ) -> Result<(), Error> {
     let excluded_clients = get_excluded_clients(env)?;
     let excluded_clients: HashSet<&str> = excluded_clients.iter().map(String::as_str).collect();
@@ -71,7 +71,7 @@ pub fn get_excluded_clients(env: &Env) -> Result<Vec<String>, Error> {
 pub fn remove_excluded_domains(
     domains: &mut Vec<&FtlDomain>,
     env: &Env,
-    strings: &FtlStrings
+    strings: &FtlStrings,
 ) -> Result<(), Error> {
     let excluded_domains: Vec<String> = get_excluded_domains(env)?;
     let excluded_domains: HashSet<&str> = excluded_domains.iter().map(String::as_str).collect();
@@ -135,14 +135,14 @@ pub fn get_current_over_time_slot(over_time: &[FtlOverTime]) -> usize {
 mod tests {
     use super::{
         remove_excluded_clients, remove_excluded_domains, remove_hidden_clients,
-        remove_hidden_domains
+        remove_hidden_domains,
     };
     use crate::{
         env::PiholeFile,
         ftl::{
-            FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, FtlSettings, ShmLockGuard
+            FtlClient, FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, FtlSettings, ShmLockGuard,
         },
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
     use std::collections::HashMap;
 
@@ -173,7 +173,7 @@ mod tests {
             upstreams: Vec::new(),
             queries: Vec::new(),
             counters: FtlCounters::default(),
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 
@@ -185,7 +185,7 @@ mod tests {
         let env = TestEnvBuilder::new()
             .file(
                 PiholeFile::SetupVars,
-                "API_EXCLUDE_CLIENTS=10.1.1.2,client1"
+                "API_EXCLUDE_CLIENTS=10.1.1.2,client1",
             )
             .build();
 
@@ -196,7 +196,7 @@ mod tests {
         remove_excluded_clients(
             &mut clients,
             &env,
-            &ftl_memory.strings(&lock_guard).unwrap()
+            &ftl_memory.strings(&lock_guard).unwrap(),
         )
         .unwrap();
 
@@ -211,7 +211,7 @@ mod tests {
         let env = TestEnvBuilder::new()
             .file(
                 PiholeFile::SetupVars,
-                "API_EXCLUDE_DOMAINS=google.com,example.com"
+                "API_EXCLUDE_DOMAINS=google.com,example.com",
             )
             .build();
 
@@ -222,7 +222,7 @@ mod tests {
         remove_excluded_domains(
             &mut clients,
             &env,
-            &ftl_memory.strings(&lock_guard).unwrap()
+            &ftl_memory.strings(&lock_guard).unwrap(),
         )
         .unwrap();
 

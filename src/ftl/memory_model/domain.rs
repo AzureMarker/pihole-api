@@ -22,7 +22,7 @@ pub struct FtlDomain {
     pub regex_match: FtlRegexMatch,
     domain_str_id: libc::size_t,
     pub query_count: libc::c_int,
-    pub blocked_count: libc::c_int
+    pub blocked_count: libc::c_int,
 }
 
 impl FtlDomain {
@@ -31,14 +31,14 @@ impl FtlDomain {
         total_count: usize,
         blocked_count: usize,
         domain_str_id: usize,
-        regex_match: FtlRegexMatch
+        regex_match: FtlRegexMatch,
     ) -> FtlDomain {
         FtlDomain {
             magic: MAGIC_BYTE,
             query_count: total_count as libc::c_int,
             blocked_count: blocked_count as libc::c_int,
             domain_str_id: domain_str_id as libc::size_t,
-            regex_match
+            regex_match,
         }
     }
 
@@ -58,7 +58,7 @@ impl Default for FtlDomain {
             query_count: 0,
             blocked_count: 0,
             domain_str_id: 0,
-            regex_match: FtlRegexMatch::Unknown
+            regex_match: FtlRegexMatch::Unknown,
         }
     }
 }
@@ -72,5 +72,5 @@ impl Default for FtlDomain {
 pub enum FtlRegexMatch {
     Unknown,
     Blocked,
-    NotBlocked
+    NotBlocked,
 }

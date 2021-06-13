@@ -9,14 +9,14 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::ftl::queries, ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams
+    databases::ftl::queries, ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams,
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 
 /// Skip iteration until the query which corresponds to the cursor.
 pub fn skip_to_cursor<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(cursor) = params.cursor {
         if let Some(id) = cursor.id {
@@ -35,7 +35,7 @@ pub fn skip_to_cursor<'a>(
 /// Skip database queries until the query which corresponds to the cursor.
 pub fn skip_to_cursor_db(
     db_query: queries::BoxedQuery<Sqlite>,
-    start_id: Option<i64>
+    start_id: Option<i64>,
 ) -> queries::BoxedQuery<Sqlite> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -57,8 +57,8 @@ mod test {
         routes::stats::history::{
             database::execute_query,
             endpoints::{HistoryCursor, HistoryParams},
-            testing::test_queries
-        }
+            testing::test_queries,
+        },
     };
     use diesel::prelude::*;
 
@@ -72,10 +72,10 @@ mod test {
             &HistoryParams {
                 cursor: Some(HistoryCursor {
                     id: Some(8),
-                    db_id: None
+                    db_id: None,
                 }),
                 ..HistoryParams::default()
-            }
+            },
         )
         .collect();
 
@@ -92,10 +92,10 @@ mod test {
             &HistoryParams {
                 cursor: Some(HistoryCursor {
                     id: None,
-                    db_id: Some(99)
+                    db_id: Some(99),
                 }),
                 ..HistoryParams::default()
-            }
+            },
         )
         .collect();
 
@@ -114,7 +114,7 @@ mod test {
             status: 3,
             domain: "1.1.1.10.in-addr.arpa".to_owned(),
             client: "127.0.0.1".to_owned(),
-            upstream: None
+            upstream: None,
         }];
 
         let db_query = skip_to_cursor_db(queries.into_boxed(), Some(1));

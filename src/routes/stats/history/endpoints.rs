@@ -14,14 +14,14 @@ use crate::{
     ftl::{FtlDnssecType, FtlMemory, FtlQueryReplyType, FtlQueryStatus, FtlQueryType},
     routes::{auth::User, stats::history::get_history::get_history},
     services::PiholeModule,
-    util::{reply_result, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply},
 };
 use base64::{decode, encode};
 use failure::ResultExt;
 use rocket::{
     form,
     form::{FromFormField, ValueField},
-    State
+    State,
 };
 use shaku_rocket::{Inject, InjectProvided};
 
@@ -34,7 +34,7 @@ pub fn history(
     ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
     params: HistoryParams,
-    db: InjectProvided<PiholeModule, FtlDatabase>
+    db: InjectProvided<PiholeModule, FtlDatabase>,
 ) -> Reply {
     reply_result(get_history(ftl_memory, &env, params, &db))
 }
@@ -43,7 +43,7 @@ pub fn history(
 #[derive(Serialize, PartialEq, Debug)]
 pub struct HistoryReply {
     pub history: Vec<QueryReply>,
-    pub cursor: Option<String>
+    pub cursor: Option<String>,
 }
 
 /// The structure of queries returned by the history endpoint
@@ -56,7 +56,7 @@ pub struct QueryReply {
     pub client: String,
     pub dnssec: u8,
     pub reply: u8,
-    pub response_time: u32
+    pub response_time: u32,
 }
 
 /// Represents the possible GET parameters on `/stats/history`
@@ -73,7 +73,7 @@ pub struct HistoryParams {
     pub blocked: Option<bool>,
     pub dnssec: Option<FtlDnssecType>,
     pub reply: Option<FtlQueryReplyType>,
-    pub limit: Option<usize>
+    pub limit: Option<usize>,
 }
 
 impl Default for HistoryParams {
@@ -90,7 +90,7 @@ impl Default for HistoryParams {
             blocked: None,
             dnssec: None,
             reply: None,
-            limit: Some(100)
+            limit: Some(100),
         }
     }
 }
@@ -100,7 +100,7 @@ impl Default for HistoryParams {
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct HistoryCursor {
     pub id: Option<i32>,
-    pub db_id: Option<i64>
+    pub db_id: Option<i64>,
 }
 
 impl HistoryCursor {

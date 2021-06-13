@@ -13,11 +13,11 @@ use crate::{
     ftl::{FtlDomain, FtlMemory},
     routes::{
         auth::User,
-        stats::common::{remove_excluded_domains, remove_hidden_domains}
+        stats::common::{remove_excluded_domains, remove_hidden_domains},
     },
     services::{domain_audit::DomainAuditRepository, PiholeModule},
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel, SetupVarsEntry},
-    util::{reply_result, Error, Reply}
+    util::{reply_result, Error, Reply},
 };
 use rocket::State;
 use shaku_rocket::{Inject, InjectProvided};
@@ -32,7 +32,7 @@ pub fn top_domains(
     ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
     params: TopDomainParams,
-    domain_audit: InjectProvided<PiholeModule, dyn DomainAuditRepository>
+    domain_audit: InjectProvided<PiholeModule, dyn DomainAuditRepository>,
 ) -> Reply {
     reply_result(get_top_domains(ftl_memory, &env, params, &*domain_audit))
 }
@@ -43,7 +43,7 @@ pub struct TopDomainParams {
     pub limit: Option<usize>,
     pub audit: Option<bool>,
     pub ascending: Option<bool>,
-    pub blocked: Option<bool>
+    pub blocked: Option<bool>,
 }
 
 /// Represents the reply structure for top (blocked) domains
@@ -54,7 +54,7 @@ pub struct TopDomainsReply {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_queries: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub blocked_queries: Option<usize>
+    pub blocked_queries: Option<usize>,
 }
 
 /// Represents the reply structure for a top (blocked) domain item
@@ -62,7 +62,7 @@ pub struct TopDomainsReply {
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct TopDomainItemReply {
     pub domain: String,
-    pub count: usize
+    pub count: usize,
 }
 
 /// Get the top domains (blocked or not)
@@ -70,7 +70,7 @@ fn get_top_domains(
     ftl_memory: &FtlMemory,
     env: &Env,
     params: TopDomainParams,
-    domain_audit: &dyn DomainAuditRepository
+    domain_audit: &dyn DomainAuditRepository,
 ) -> Result<TopDomainsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
@@ -138,7 +138,7 @@ fn get_top_domains(
             (a.query_count - a.blocked_count).cmp(&(b.query_count - b.blocked_count))
         }),
         (false, true) => domains.sort_by(|a, b| b.blocked_count.cmp(&a.blocked_count)),
-        (true, true) => domains.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count))
+        (true, true) => domains.sort_by(|a, b| a.blocked_count.cmp(&b.blocked_count)),
     }
 
     // Take into account the limit
@@ -159,7 +159,7 @@ fn get_top_domains(
 
             TopDomainItemReply {
                 domain: name,
-                count
+                count,
             }
         })
         .collect();
@@ -169,13 +169,13 @@ fn get_top_domains(
         Ok(TopDomainsReply {
             top_domains,
             total_queries: None,
-            blocked_queries: Some(counters.blocked_queries as usize)
+            blocked_queries: Some(counters.blocked_queries as usize),
         })
     } else {
         Ok(TopDomainsReply {
             top_domains,
             total_queries: Some(counters.total_queries as usize),
-            blocked_queries: None
+            blocked_queries: None,
         })
     }
 }
@@ -186,7 +186,7 @@ fn get_top_domains(
 /// is returned which should be used as the endpoint reply.
 pub fn check_query_log_show_top_domains(
     env: &Env,
-    blocked: bool
+    blocked: bool,
 ) -> Result<Option<TopDomainsReply>, Error> {
     let display_setting = SetupVarsEntry::ApiQueryLogShow.read(env)?;
 
@@ -198,13 +198,13 @@ pub fn check_query_log_show_top_domains(
             return Ok(Some(TopDomainsReply {
                 top_domains: Vec::new(),
                 total_queries: None,
-                blocked_queries: Some(0)
+                blocked_queries: Some(0),
             }));
         } else {
             return Ok(Some(TopDomainsReply {
                 top_domains: Vec::new(),
                 total_queries: Some(0),
-                blocked_queries: None
+                blocked_queries: None,
             }));
         }
     }
@@ -217,7 +217,7 @@ pub fn check_query_log_show_top_domains(
 pub fn check_privacy_level_top_domains(
     env: &Env,
     blocked: bool,
-    count: usize
+    count: usize,
 ) -> Result<Option<TopDomainsReply>, Error> {
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::HideDomains
     {
@@ -225,13 +225,13 @@ pub fn check_privacy_level_top_domains(
             return Ok(Some(TopDomainsReply {
                 top_domains: Vec::new(),
                 total_queries: None,
-                blocked_queries: Some(count)
+                blocked_queries: Some(count),
             }));
         } else {
             return Ok(Some(TopDomainsReply {
                 top_domains: Vec::new(),
                 total_queries: Some(count),
-                blocked_queries: None
+                blocked_queries: None,
             }));
         }
     }
@@ -245,7 +245,7 @@ mod test {
         env::PiholeFile,
         ftl::{FtlCounters, FtlDomain, FtlMemory, FtlRegexMatch, FtlSettings},
         services::domain_audit::{DomainAuditRepository, MockDomainAuditRepository},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use std::collections::HashMap;
 
@@ -277,7 +277,7 @@ mod test {
                 total_domains: 5,
                 ..FtlCounters::default()
             },
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 

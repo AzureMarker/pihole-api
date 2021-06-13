@@ -23,7 +23,7 @@ pub struct WebConfig {
 
     /// The path to mount the web interface on
     #[serde(default = "default_path")]
-    pub path: PathBuf
+    pub path: PathBuf,
 }
 
 impl Default for WebConfig {
@@ -31,7 +31,7 @@ impl Default for WebConfig {
         WebConfig {
             enabled: default_enabled(),
             root_redirect: default_root_redirect(),
-            path: default_path()
+            path: default_path(),
         }
     }
 }

@@ -15,5 +15,5 @@ mod file;
 pub use self::{
     config::{Config, DEFAULT_CONFIG_LOCATION},
     env_impl::Env,
-    file::PiholeFile
+    file::PiholeFile,
 };

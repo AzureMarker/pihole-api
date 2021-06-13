@@ -1,7 +1,8 @@
-trailing_comma = "Never"
+# Commented out entries are unstable (require nightly)
+#trailing_comma = "Never"
 use_field_init_shorthand = true
 use_try_shorthand = true
-wrap_comments = true
-color = "Always"
-license_template_path = "LICENSE_TEMPLATE"
-imports_granularity = "Crate"
+#wrap_comments = true
+#color = "Always"
+#license_template_path = "LICENSE_TEMPLATE"
+#imports_granularity = "Crate"

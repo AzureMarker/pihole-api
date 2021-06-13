@@ -17,12 +17,12 @@ use crate::{
         stats::{
             common::{get_excluded_clients, HIDDEN_CLIENT},
             database::over_time_history_db::align_from_until,
-            over_time_clients::{OverTimeClientItem, OverTimeClients}
-        }
+            over_time_clients::{OverTimeClientItem, OverTimeClients},
+        },
     },
     services::PiholeModule,
     settings::ValueType,
-    util::{reply_result, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply},
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, SqliteConnection};
 use failure::ResultExt;
@@ -39,14 +39,14 @@ pub fn over_time_clients_db(
     interval: Option<usize>,
     _auth: User,
     db: InjectProvided<PiholeModule, FtlDatabase>,
-    env: Inject<PiholeModule, Env>
+    env: Inject<PiholeModule, Env>,
 ) -> Reply {
     reply_result(over_time_clients_db_impl(
         from,
         until,
         interval.unwrap_or(600),
         &db as &SqliteConnection,
-        &env
+        &env,
     ))
 }
 
@@ -56,7 +56,7 @@ fn over_time_clients_db_impl(
     until: u64,
     interval: usize,
     db: &SqliteConnection,
-    env: &Env
+    env: &Env,
 ) -> Result<OverTimeClients, Error> {
     let (from, until) = align_from_until(from, until, interval as u64)?;
 
@@ -86,7 +86,7 @@ fn over_time_clients_db_impl(
         .map(|(timestamp, data)| OverTimeClientItem {
             // Display the timestamps as centered in the overTime slot interval
             timestamp: timestamp + (interval / 2) as u64,
-            data
+            data,
         })
         .collect();
 
@@ -103,13 +103,13 @@ fn over_time_clients_db_impl(
                 // If the identifier is an IP address, use it as the client IP
                 ClientReply {
                     name: "".to_owned(),
-                    ip: client_identifier
+                    ip: client_identifier,
                 }
             } else {
                 // If the identifier is not an IP address, use it as the name
                 ClientReply {
                     name: client_identifier,
-                    ip: "".to_owned()
+                    ip: "".to_owned(),
                 }
             }
         })
@@ -124,7 +124,7 @@ fn get_client_identifiers(
     from: u64,
     until: u64,
     db: &SqliteConnection,
-    env: &Env
+    env: &Env,
 ) -> Result<Vec<String>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -150,7 +150,7 @@ fn get_client_over_time(
     until: u64,
     interval: usize,
     client_identifier: &str,
-    db: &SqliteConnection
+    db: &SqliteConnection,
 ) -> Result<HashMap<i32, i64>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -185,7 +185,7 @@ mod test {
         env::PiholeFile,
         ftl::ClientReply,
         routes::stats::over_time_clients::{OverTimeClientItem, OverTimeClients},
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
     use std::collections::HashMap;
 
@@ -200,27 +200,27 @@ mod test {
             clients: vec![
                 ClientReply {
                     name: "".to_owned(),
-                    ip: "127.0.0.1".to_owned()
+                    ip: "127.0.0.1".to_owned(),
                 },
                 ClientReply {
                     name: "".to_owned(),
-                    ip: "10.1.1.1".to_owned()
+                    ip: "10.1.1.1".to_owned(),
                 },
             ],
             over_time: vec![
                 OverTimeClientItem {
                     timestamp: 164_700,
-                    data: vec![25, 1]
+                    data: vec![25, 1],
                 },
                 OverTimeClientItem {
                     timestamp: 165_300,
-                    data: vec![7, 0]
+                    data: vec![7, 0],
                 },
                 OverTimeClientItem {
                     timestamp: 165_900,
-                    data: vec![0, 0]
+                    data: vec![0, 0],
                 },
-            ]
+            ],
         };
 
         let db = connect_to_ftl_test_db();

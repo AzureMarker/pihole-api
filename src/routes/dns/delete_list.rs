@@ -12,9 +12,9 @@ use crate::{
     routes::auth::User,
     services::{
         lists::{List, ListService},
-        PiholeModule
+        PiholeModule,
     },
-    util::{reply_success, Reply}
+    util::{reply_success, Reply},
 };
 use shaku_rocket::InjectProvided;
 
@@ -23,7 +23,7 @@ use shaku_rocket::InjectProvided;
 pub fn delete_whitelist(
     _auth: User,
     list_service: InjectProvided<PiholeModule, dyn ListService>,
-    domain: String
+    domain: String,
 ) -> Reply {
     list_service.remove(List::White, &domain)?;
     reply_success()
@@ -34,7 +34,7 @@ pub fn delete_whitelist(
 pub fn delete_blacklist(
     _auth: User,
     list_service: InjectProvided<PiholeModule, dyn ListService>,
-    domain: String
+    domain: String,
 ) -> Reply {
     list_service.remove(List::Black, &domain)?;
     reply_success()
@@ -45,7 +45,7 @@ pub fn delete_blacklist(
 pub fn delete_regexlist(
     _auth: User,
     list_service: InjectProvided<PiholeModule, dyn ListService>,
-    domain: String
+    domain: String,
 ) -> Reply {
     list_service.remove(List::Regex, &domain)?;
     reply_success()
@@ -55,7 +55,7 @@ pub fn delete_regexlist(
 mod test {
     use crate::{
         services::lists::{List, ListService, MockListService},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use mockall::predicate::*;
     use rocket::http::Method;
@@ -84,7 +84,7 @@ mod test {
         delete_test(
             List::White,
             "/admin/api/dns/whitelist/example.com",
-            "example.com"
+            "example.com",
         );
     }
 
@@ -93,7 +93,7 @@ mod test {
         delete_test(
             List::Black,
             "/admin/api/dns/blacklist/example.com",
-            "example.com"
+            "example.com",
         );
     }
 
@@ -102,7 +102,7 @@ mod test {
         delete_test(
             List::Regex,
             "/admin/api/dns/regexlist/%5E.%2Aexample.com%24",
-            "^.*example.com$"
+            "^.*example.com$",
         );
     }
 }

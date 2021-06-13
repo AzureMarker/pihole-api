@@ -12,11 +12,11 @@ use crate::util::{Error, ErrorKind};
 use failure::{Fail, ResultExt};
 use rmp::{
     decode::{self, DecodeStringError, ValueReadError},
-    Marker
+    Marker,
 };
 use std::{
     io::{prelude::*, BufReader},
-    os::unix::net::UnixStream
+    os::unix::net::UnixStream,
 };
 
 use shaku::{Component, Module, ModuleBuildContext};
@@ -40,7 +40,7 @@ pub struct FtlConnection<'test>(Box<dyn Read + 'test>);
 pub enum FtlConnectionType {
     Socket,
     #[cfg(test)]
-    Test(HashMap<String, Vec<u8>>)
+    Test(HashMap<String, Vec<u8>>),
 }
 
 impl<M: Module> Component<M> for FtlConnectionType {
@@ -81,8 +81,8 @@ impl FtlConnectionType {
                     // Try to get the testing data for this command
                     match map.get(command) {
                         Some(data) => data,
-                        None => return Err(Error::from(ErrorKind::FtlConnectionFail))
-                    }
+                        None => return Err(Error::from(ErrorKind::FtlConnectionFail)),
+                    },
                 ))))
             }
         }
@@ -124,7 +124,7 @@ impl<'test> FtlConnection<'test> {
         // Read exactly 1 byte
         match self.0.read_exact(&mut buffer) {
             Ok(_) => (),
-            Err(e) => return Err(Error::from(e.context(ErrorKind::FtlReadError)))
+            Err(e) => return Err(Error::from(e.context(ErrorKind::FtlReadError))),
         }
 
         // Check if it was the EOM byte

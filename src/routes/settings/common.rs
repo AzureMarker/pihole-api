@@ -10,7 +10,7 @@
 
 use crate::{
     env::Env,
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::ResultExt;
 use std::process::{Command, Stdio};

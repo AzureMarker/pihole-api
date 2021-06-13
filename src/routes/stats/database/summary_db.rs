@@ -16,12 +16,12 @@ use crate::{
         auth::User,
         stats::{
             database::query_types_db::get_query_type_counts,
-            summary::{ReplyTypes, Summary, TotalQueries}
-        }
+            summary::{ReplyTypes, Summary, TotalQueries},
+        },
     },
     services::PiholeModule,
     settings::{ConfigEntry, SetupVarsEntry},
-    util::{reply_result, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply},
 };
 use diesel::prelude::*;
 use failure::ResultExt;
@@ -34,13 +34,13 @@ pub fn get_summary_db(
     until: u64,
     _auth: User,
     db: InjectProvided<PiholeModule, FtlDatabase>,
-    env: Inject<PiholeModule, Env>
+    env: Inject<PiholeModule, Env>,
 ) -> Reply {
     reply_result(get_summary_impl(
         from,
         until,
         &db as &SqliteConnection,
-        &env
+        &env,
     ))
 }
 
@@ -51,7 +51,7 @@ fn get_summary_impl(
     from: u64,
     until: u64,
     db: &SqliteConnection,
-    env: &Env
+    env: &Env,
 ) -> Result<Summary, Error> {
     let query_type_counts = get_query_type_counts(db, from, until)?;
 
@@ -83,7 +83,7 @@ fn get_summary_impl(
             SRV: total_queries_srv,
             SOA: total_queries_soa,
             PTR: total_queries_ptr,
-            TXT: total_queries_txt
+            TXT: total_queries_txt,
         },
         blocked_queries,
         percent_blocked: if total_queries == 0 {
@@ -100,7 +100,7 @@ fn get_summary_impl(
             CNAME: 0,
             DOMAIN: 0,
             NODATA: 0,
-            NXDOMAIN: 0
+            NXDOMAIN: 0,
         },
         // TODO: use real client values when we can accurately determine the number of clients
         total_clients: 0,
@@ -109,7 +109,7 @@ fn get_summary_impl(
             "enabled"
         } else {
             "disabled"
-        }
+        },
     })
 }
 
@@ -117,7 +117,7 @@ fn get_summary_impl(
 pub fn get_blocked_query_count(
     db: &SqliteConnection,
     from: u64,
-    until: u64
+    until: u64,
 ) -> Result<usize, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -153,7 +153,7 @@ pub fn get_query_status_count(
     db: &SqliteConnection,
     from: u64,
     until: u64,
-    status_type: FtlQueryStatus
+    status_type: FtlQueryStatus,
 ) -> Result<usize, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -170,14 +170,14 @@ pub fn get_query_status_count(
 #[cfg(test)]
 mod test {
     use super::{
-        get_blocked_query_count, get_query_status_count, get_summary_impl, get_unique_domain_count
+        get_blocked_query_count, get_query_status_count, get_summary_impl, get_unique_domain_count,
     };
     use crate::{
         databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         ftl::FtlQueryStatus,
         routes::stats::summary::{ReplyTypes, Summary, TotalQueries},
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
 
     const FROM_TIMESTAMP: u64 = 0;
@@ -195,7 +195,7 @@ mod test {
                 SRV: 0,
                 SOA: 0,
                 PTR: 23,
-                TXT: 0
+                TXT: 0,
             },
             blocked_queries: 0,
             percent_blocked: 0f64,
@@ -207,11 +207,11 @@ mod test {
                 CNAME: 0,
                 DOMAIN: 0,
                 NODATA: 0,
-                NXDOMAIN: 0
+                NXDOMAIN: 0,
             },
             total_clients: 0,
             active_clients: 0,
-            status: "enabled"
+            status: "enabled",
         };
 
         let db = connect_to_ftl_test_db();
@@ -255,7 +255,7 @@ mod test {
             &db,
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
-            FtlQueryStatus::Forward
+            FtlQueryStatus::Forward,
         )
         .unwrap();
 

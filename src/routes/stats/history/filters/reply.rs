@@ -13,7 +13,7 @@ use crate::{ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams};
 /// Only show queries of the specified reply type
 pub fn filter_reply<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(reply) = params.reply {
         Box::new(queries_iter.filter(move |query| query.reply_type == reply))
@@ -27,7 +27,7 @@ mod test {
     use super::filter_reply;
     use crate::{
         ftl::{FtlQuery, FtlQueryReplyType},
-        routes::stats::history::{endpoints::HistoryParams, testing::test_queries}
+        routes::stats::history::{endpoints::HistoryParams, testing::test_queries},
     };
 
     /// Only return queries of the specified reply type
@@ -40,7 +40,7 @@ mod test {
             &HistoryParams {
                 reply: Some(FtlQueryReplyType::CNAME),
                 ..HistoryParams::default()
-            }
+            },
         )
         .collect();
 

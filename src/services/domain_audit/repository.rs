@@ -10,7 +10,7 @@
 
 use crate::{
     databases::gravity::GravityDatabase,
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use diesel::{expression::exists::exists, insert_into, prelude::*, select};
 use failure::ResultExt;
@@ -34,7 +34,7 @@ pub trait DomainAuditRepository {
 #[shaku(interface = DomainAuditRepository)]
 pub struct DomainAuditRepositoryImpl {
     #[shaku(provide)]
-    db: Box<GravityDatabase>
+    db: Box<GravityDatabase>,
 }
 
 impl DomainAuditRepository for DomainAuditRepositoryImpl {
@@ -76,7 +76,7 @@ impl DomainAuditRepository for DomainAuditRepositoryImpl {
 mod tests {
     use crate::{
         databases::gravity::connect_to_gravity_test_db,
-        services::domain_audit::{DomainAuditRepository, DomainAuditRepositoryImpl}
+        services::domain_audit::{DomainAuditRepository, DomainAuditRepositoryImpl},
     };
 
     /// If the audit table contains the domain, true will be returned

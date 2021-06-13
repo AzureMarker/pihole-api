@@ -13,7 +13,7 @@ use crate::{ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams};
 /// Only show queries of the specified DNSSEC type
 pub fn filter_dnssec<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(dnssec) = params.dnssec {
         Box::new(queries_iter.filter(move |query| query.dnssec_type == dnssec))
@@ -27,7 +27,7 @@ mod test {
     use super::filter_dnssec;
     use crate::{
         ftl::{FtlDnssecType, FtlQuery},
-        routes::stats::history::{endpoints::HistoryParams, testing::test_queries}
+        routes::stats::history::{endpoints::HistoryParams, testing::test_queries},
     };
 
     /// Only return queries of the specified DNSSEC type
@@ -40,7 +40,7 @@ mod test {
             &HistoryParams {
                 dnssec: Some(FtlDnssecType::Secure),
                 ..HistoryParams::default()
-            }
+            },
         )
         .collect();
 

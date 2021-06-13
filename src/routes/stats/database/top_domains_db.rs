@@ -17,16 +17,16 @@ use crate::{
         stats::{
             common::{get_excluded_domains, HIDDEN_DOMAIN},
             database::{
-                query_types_db::get_query_type_counts, summary_db::get_blocked_query_count
+                query_types_db::get_query_type_counts, summary_db::get_blocked_query_count,
             },
             top_domains::{
                 check_privacy_level_top_domains, check_query_log_show_top_domains,
-                TopDomainItemReply, TopDomainParams, TopDomainsReply
-            }
-        }
+                TopDomainItemReply, TopDomainParams, TopDomainsReply,
+            },
+        },
     },
     services::{domain_audit::DomainAuditRepository, PiholeModule},
-    util::{reply_result, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply},
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
@@ -43,7 +43,7 @@ pub fn top_domains_db(
     from: u64,
     until: u64,
     params: TopDomainParams,
-    domain_audit: InjectProvided<PiholeModule, dyn DomainAuditRepository>
+    domain_audit: InjectProvided<PiholeModule, dyn DomainAuditRepository>,
 ) -> Reply {
     reply_result(top_domains_db_impl(
         &env,
@@ -51,7 +51,7 @@ pub fn top_domains_db(
         from,
         until,
         params,
-        &*domain_audit
+        &*domain_audit,
     ))
 }
 
@@ -62,7 +62,7 @@ fn top_domains_db_impl(
     from: u64,
     until: u64,
     params: TopDomainParams,
-    domain_audit: &dyn DomainAuditRepository
+    domain_audit: &dyn DomainAuditRepository,
 ) -> Result<TopDomainsReply, Error> {
     // Resolve the parameters
     let limit = params.limit.unwrap_or(10);
@@ -100,7 +100,7 @@ fn top_domains_db_impl(
             .into_iter()
             .map(|(domain, count)| TopDomainItemReply {
                 domain,
-                count: count as usize
+                count: count as usize,
             })
             .collect();
 
@@ -109,13 +109,13 @@ fn top_domains_db_impl(
         Ok(TopDomainsReply {
             top_domains,
             total_queries: None,
-            blocked_queries: Some(total_count)
+            blocked_queries: Some(total_count),
         })
     } else {
         Ok(TopDomainsReply {
             top_domains,
             total_queries: Some(total_count),
-            blocked_queries: None
+            blocked_queries: None,
         })
     }
 }
@@ -125,7 +125,7 @@ fn top_domains_db_impl(
 fn get_ignored_domains(
     env: &Env,
     audit: bool,
-    domain_audit: &dyn DomainAuditRepository
+    domain_audit: &dyn DomainAuditRepository,
 ) -> Result<Vec<String>, Error> {
     // Ignore domains excluded via SetupVars
     let mut ignored_domains = get_excluded_domains(env)?;
@@ -151,7 +151,7 @@ fn execute_top_domains_query(
     ignored_domains: Vec<String>,
     blocked: bool,
     ascending: bool,
-    limit: usize
+    limit: usize,
 ) -> Result<Vec<(String, i64)>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -198,7 +198,7 @@ mod test {
         env::PiholeFile,
         routes::stats::top_domains::{TopDomainItemReply, TopDomainParams, TopDomainsReply},
         services::domain_audit::MockDomainAuditRepository,
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
 
     const FROM_TIMESTAMP: u64 = 0;
@@ -212,47 +212,47 @@ mod test {
             top_domains: vec![
                 TopDomainItemReply {
                     domain: "0.ubuntu.pool.ntp.org".to_owned(),
-                    count: 14
+                    count: 14,
                 },
                 TopDomainItemReply {
                     domain: "1.ubuntu.pool.ntp.org".to_owned(),
-                    count: 12
+                    count: 12,
                 },
                 TopDomainItemReply {
                     domain: "github.com".to_owned(),
-                    count: 12
+                    count: 12,
                 },
                 TopDomainItemReply {
                     domain: "3.ubuntu.pool.ntp.org".to_owned(),
-                    count: 10
+                    count: 10,
                 },
                 TopDomainItemReply {
                     domain: "4.4.8.8.in-addr.arpa".to_owned(),
-                    count: 9
+                    count: 9,
                 },
                 TopDomainItemReply {
                     domain: "1.1.1.10.in-addr.arpa".to_owned(),
-                    count: 8
+                    count: 8,
                 },
                 TopDomainItemReply {
                     domain: "2.ubuntu.pool.ntp.org".to_owned(),
-                    count: 8
+                    count: 8,
                 },
                 TopDomainItemReply {
                     domain: "ntp.ubuntu.com".to_owned(),
-                    count: 8
+                    count: 8,
                 },
                 TopDomainItemReply {
                     domain: "8.8.8.8.in-addr.arpa".to_owned(),
-                    count: 6
+                    count: 6,
                 },
                 TopDomainItemReply {
                     domain: "ftl.pi-hole.net".to_owned(),
-                    count: 6
+                    count: 6,
                 },
             ],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
@@ -267,7 +267,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &MockDomainAuditRepository::new()
+            &MockDomainAuditRepository::new(),
         )
         .unwrap();
 
@@ -281,15 +281,15 @@ mod test {
             top_domains: vec![
                 TopDomainItemReply {
                     domain: "0.ubuntu.pool.ntp.org".to_owned(),
-                    count: 14
+                    count: 14,
                 },
                 TopDomainItemReply {
                     domain: "1.ubuntu.pool.ntp.org".to_owned(),
-                    count: 12
+                    count: 12,
                 },
             ],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
@@ -307,7 +307,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &MockDomainAuditRepository::new()
+            &MockDomainAuditRepository::new(),
         )
         .unwrap();
 
@@ -322,7 +322,7 @@ mod test {
         let expected = TopDomainsReply {
             top_domains: Vec::new(),
             total_queries: None,
-            blocked_queries: Some(0)
+            blocked_queries: Some(0),
         };
 
         let db = connect_to_ftl_test_db();
@@ -340,7 +340,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &MockDomainAuditRepository::new()
+            &MockDomainAuditRepository::new(),
         )
         .unwrap();
 
@@ -355,15 +355,15 @@ mod test {
             top_domains: vec![
                 TopDomainItemReply {
                     domain: "google.com".to_owned(),
-                    count: 1
+                    count: 1,
                 },
                 TopDomainItemReply {
                     domain: "8.8.8.8.in-addr.arpa".to_owned(),
-                    count: 6
+                    count: 6,
                 },
             ],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
@@ -382,7 +382,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &MockDomainAuditRepository::new()
+            &MockDomainAuditRepository::new(),
         )
         .unwrap();
 
@@ -397,15 +397,15 @@ mod test {
             top_domains: vec![
                 TopDomainItemReply {
                     domain: "0.ubuntu.pool.ntp.org".to_owned(),
-                    count: 14
+                    count: 14,
                 },
                 TopDomainItemReply {
                     domain: "github.com".to_owned(),
-                    count: 12
+                    count: 12,
                 },
             ],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
@@ -429,7 +429,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &domain_audit
+            &domain_audit,
         )
         .unwrap();
 
@@ -443,22 +443,22 @@ mod test {
             top_domains: vec![
                 TopDomainItemReply {
                     domain: "0.ubuntu.pool.ntp.org".to_owned(),
-                    count: 14
+                    count: 14,
                 },
                 TopDomainItemReply {
                     domain: "github.com".to_owned(),
-                    count: 12
+                    count: 12,
                 },
             ],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
         let env = TestEnvBuilder::new()
             .file(
                 PiholeFile::SetupVars,
-                "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org"
+                "API_EXCLUDE_DOMAINS=1.ubuntu.pool.ntp.org",
             )
             .file(PiholeFile::FtlConfig, "")
             .build();
@@ -476,7 +476,7 @@ mod test {
             FROM_TIMESTAMP,
             UNTIL_TIMESTAMP,
             params,
-            &domain_audit
+            &domain_audit,
         )
         .unwrap();
 

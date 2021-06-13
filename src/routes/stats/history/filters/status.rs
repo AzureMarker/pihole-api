@@ -9,14 +9,14 @@
 // Please see LICENSE file for your rights under this license.
 
 use crate::{
-    databases::ftl::queries, ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams
+    databases::ftl::queries, ftl::FtlQuery, routes::stats::history::endpoints::HistoryParams,
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 
 /// Only show queries with the specific status
 pub fn filter_status<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     if let Some(status) = params.status {
         Box::new(queries_iter.filter(move |query| query.status == status))
@@ -28,7 +28,7 @@ pub fn filter_status<'a>(
 /// Only show queries with the specific status in database results
 pub fn filter_status_db<'a>(
     db_query: queries::BoxedQuery<'a, Sqlite>,
-    params: &HistoryParams
+    params: &HistoryParams,
 ) -> queries::BoxedQuery<'a, Sqlite> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -47,8 +47,8 @@ mod test {
         databases::ftl::connect_to_ftl_test_db,
         ftl::{FtlQuery, FtlQueryStatus},
         routes::stats::history::{
-            database::execute_query, endpoints::HistoryParams, testing::test_queries
-        }
+            database::execute_query, endpoints::HistoryParams, testing::test_queries,
+        },
     };
     use diesel::prelude::*;
 
@@ -62,7 +62,7 @@ mod test {
             &HistoryParams {
                 status: Some(FtlQueryStatus::Gravity),
                 ..HistoryParams::default()
-            }
+            },
         )
         .collect();
 

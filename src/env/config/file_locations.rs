@@ -38,7 +38,7 @@ pub struct Files {
     #[serde(default = "default_black_list")]
     black_list: String,
     #[serde(default = "default_black_list_backup")]
-    black_list_backup: String
+    black_list_backup: String,
 }
 
 impl Default for Files {
@@ -55,7 +55,7 @@ impl Default for Files {
             gravity: default_gravity(),
             gravity_backup: default_gravity_backup(),
             black_list: default_black_list(),
-            black_list_backup: default_black_list_backup()
+            black_list_backup: default_black_list_backup(),
         }
     }
 }
@@ -74,7 +74,7 @@ impl Files {
             &self.gravity,
             &self.gravity_backup,
             &self.black_list,
-            &self.black_list_backup
+            &self.black_list_backup,
         ]
         .iter()
         .all(|file| Path::new(file).is_absolute())
@@ -94,7 +94,7 @@ impl Files {
             PiholeFile::Gravity => &self.gravity,
             PiholeFile::GravityBackup => &self.gravity_backup,
             PiholeFile::BlackList => &self.black_list,
-            PiholeFile::BlackListBackup => &self.black_list_backup
+            PiholeFile::BlackListBackup => &self.black_list_backup,
         }
     }
 }

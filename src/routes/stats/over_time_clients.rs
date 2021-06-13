@@ -15,12 +15,12 @@ use crate::{
         auth::User,
         stats::{
             clients::{filter_ftl_clients, ClientParams},
-            common::get_current_over_time_slot
-        }
+            common::get_current_over_time_slot,
+        },
     },
     services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
 use rocket::State;
 use shaku_rocket::Inject;
@@ -33,7 +33,7 @@ pub use over_time_clients as route;
 pub fn over_time_clients(
     _auth: User,
     ftl_memory: &State<FtlMemory>,
-    env: Inject<PiholeModule, Env>
+    env: Inject<PiholeModule, Env>,
 ) -> Reply {
     // Check if client details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
@@ -41,7 +41,7 @@ pub fn over_time_clients(
     {
         return reply_data(OverTimeClients {
             over_time: Vec::new(),
-            clients: Vec::new()
+            clients: Vec::new(),
         });
     }
 
@@ -57,7 +57,7 @@ pub fn over_time_clients(
         &lock,
         &ftl_clients,
         &env,
-        ClientParams::default()
+        ClientParams::default(),
     )?;
 
     // Get the valid over time slots (Skip while the slots are empty).
@@ -102,7 +102,7 @@ pub fn over_time_clients(
 #[cfg_attr(test, derive(Debug))]
 pub struct OverTimeClientItem {
     pub timestamp: u64,
-    pub data: Vec<usize>
+    pub data: Vec<usize>,
 }
 
 impl PartialOrd for OverTimeClientItem {
@@ -110,7 +110,7 @@ impl PartialOrd for OverTimeClientItem {
         Some(
             self.timestamp
                 .cmp(&other.timestamp)
-                .then(self.data.cmp(&other.data))
+                .then(self.data.cmp(&other.data)),
         )
     }
 }
@@ -126,7 +126,7 @@ impl Ord for OverTimeClientItem {
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct OverTimeClients {
     pub over_time: Vec<OverTimeClientItem>,
-    pub clients: Vec<ClientReply>
+    pub clients: Vec<ClientReply>,
 }
 
 #[cfg(test)]
@@ -134,7 +134,7 @@ mod test {
     use crate::{
         env::PiholeFile,
         ftl::{FtlClient, FtlCounters, FtlMemory, FtlOverTime, FtlSettings},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use std::collections::HashMap;
 
@@ -174,7 +174,7 @@ mod test {
                 total_clients: 6,
                 ..FtlCounters::default()
             },
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 

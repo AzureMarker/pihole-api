@@ -13,7 +13,7 @@ use crate::{
     ftl::FtlQueryType,
     routes::{auth::User, stats::query_types::QueryTypeReply},
     services::PiholeModule,
-    util::{reply_result, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply},
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
@@ -28,7 +28,7 @@ pub fn query_types_db(
     from: u64,
     until: u64,
     _auth: User,
-    db: InjectProvided<PiholeModule, FtlDatabase>
+    db: InjectProvided<PiholeModule, FtlDatabase>,
 ) -> Reply {
     reply_result(query_types_db_impl(from, until, &db as &SqliteConnection))
 }
@@ -37,7 +37,7 @@ pub fn query_types_db(
 fn query_types_db_impl(
     from: u64,
     until: u64,
-    db: &SqliteConnection
+    db: &SqliteConnection,
 ) -> Result<Vec<QueryTypeReply>, Error> {
     let query_types = get_query_type_counts(db, from, until)?;
 
@@ -45,7 +45,7 @@ fn query_types_db_impl(
         .iter()
         .map(|variant| QueryTypeReply {
             name: variant.get_name(),
-            count: query_types[variant]
+            count: query_types[variant],
         })
         .collect())
 }
@@ -54,7 +54,7 @@ fn query_types_db_impl(
 pub fn get_query_type_counts(
     db: &SqliteConnection,
     from: u64,
-    until: u64
+    until: u64,
 ) -> Result<HashMap<FtlQueryType, usize>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 

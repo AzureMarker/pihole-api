@@ -10,16 +10,16 @@
 
 use crate::{
     ftl::lock_thread::{LockRequest, LockThread, RequestType},
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::{Fail, ResultExt};
 use nix::errno::Errno;
 use std::{
     sync::{
         mpsc::{channel, Sender},
-        Mutex, PoisonError
+        Mutex, PoisonError,
     },
-    thread
+    thread,
 };
 
 /// A lock for coordinating shared memory access with FTL. It locks a mutex in
@@ -30,7 +30,7 @@ use std::{
 /// The shared memory lock must be locked and unlocked from the same thread, so
 /// the locking happens on a dedicated lock handling thread.
 pub struct ShmLock {
-    sender: Mutex<Sender<LockRequest>>
+    sender: Mutex<Sender<LockRequest>>,
 }
 
 impl ShmLock {
@@ -49,7 +49,7 @@ impl ShmLock {
             .unwrap();
 
         ShmLock {
-            sender: Mutex::new(request_sender)
+            sender: Mutex::new(request_sender),
         }
     }
 
@@ -82,7 +82,7 @@ impl ShmLock {
 
         if ret != 0 {
             Err(Error::from(
-                Errno::from_i32(ret).context(ErrorKind::SharedMemoryLock)
+                Errno::from_i32(ret).context(ErrorKind::SharedMemoryLock),
             ))
         } else {
             Ok(())
@@ -93,10 +93,10 @@ impl ShmLock {
 /// A RAII type lock guard which keeps the lock active until it is dropped.
 pub enum ShmLockGuard<'lock> {
     Production {
-        lock: &'lock ShmLock
+        lock: &'lock ShmLock,
     },
     #[cfg(test)]
-    Test
+    Test,
 }
 
 impl<'lock> Drop for ShmLockGuard<'lock> {
@@ -106,7 +106,7 @@ impl<'lock> Drop for ShmLockGuard<'lock> {
                 lock.send_request(RequestType::Unlock).unwrap();
             }
             #[cfg(test)]
-            ShmLockGuard::Test => ()
+            ShmLockGuard::Test => (),
         }
     }
 }
@@ -115,14 +115,14 @@ impl<'lock> Drop for ShmLockGuard<'lock> {
 mod test {
     use crate::ftl::{
         lock_thread::{LockRequest, RequestType},
-        ShmLock
+        ShmLock,
     };
     use std::{
         sync::{
             mpsc::{channel, Receiver},
-            Mutex
+            Mutex,
         },
-        thread
+        thread,
     };
 
     /// Get a request from the receiver and check the request type. After
@@ -143,7 +143,7 @@ mod test {
         let (sender, receiver) = channel();
 
         let lock = ShmLock {
-            sender: Mutex::new(sender)
+            sender: Mutex::new(sender),
         };
 
         // Create the mock lock handler thread
@@ -170,7 +170,7 @@ mod test {
         let (sender, receiver) = channel();
 
         let lock = ShmLock {
-            sender: Mutex::new(sender)
+            sender: Mutex::new(sender),
         };
 
         // Create the mock lock handler thread
@@ -198,7 +198,7 @@ mod test {
         let (sender, receiver) = channel();
 
         let lock = ShmLock {
-            sender: Mutex::new(sender)
+            sender: Mutex::new(sender),
         };
 
         // Create the mock lock handler thread

@@ -12,17 +12,17 @@ use crate::{
     ftl::{FtlMemory, FtlQuery, ShmLockGuard},
     routes::stats::{
         common::{HIDDEN_CLIENT, HIDDEN_DOMAIN},
-        history::QueryReply
+        history::QueryReply,
     },
     settings::FtlPrivacyLevel,
-    util::Error
+    util::Error,
 };
 
 /// Create a function to map `FtlQuery` structs to JSON `Value` structs. The
 /// queries' privacy levels will be taken into account when exposing their data.
 pub fn map_query_to_json<'a>(
     ftl_memory: &'a FtlMemory,
-    ftl_lock: &ShmLockGuard<'a>
+    ftl_lock: &ShmLockGuard<'a>,
 ) -> Result<impl Fn(&FtlQuery) -> QueryReply + 'a, Error> {
     let domains = ftl_memory.domains(ftl_lock)?;
     let clients = ftl_memory.clients(ftl_lock)?;
@@ -63,7 +63,7 @@ pub fn map_query_to_json<'a>(
             client: client.to_owned(),
             dnssec: query.dnssec_type as u8,
             reply: query.reply_type as u8,
-            response_time
+            response_time,
         }
     })
 }
@@ -75,9 +75,9 @@ mod test {
         ftl::ShmLockGuard,
         routes::stats::history::{
             testing::{test_memory, test_queries},
-            QueryReply
+            QueryReply,
         },
-        settings::FtlPrivacyLevel
+        settings::FtlPrivacyLevel,
     };
 
     /// Verify that queries are mapped to JSON correctly

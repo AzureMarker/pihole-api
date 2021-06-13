@@ -13,7 +13,7 @@ use crate::{
     env::Env,
     ftl::{FtlMemory, FtlQuery, ShmLockGuard},
     settings::{ConfigEntry, SetupVarsEntry},
-    util::Error
+    util::Error,
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 use std::collections::HashSet;
@@ -23,7 +23,7 @@ pub fn filter_excluded_clients<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     env: &Env,
     ftl_memory: &FtlMemory,
-    ftl_lock: &ShmLockGuard<'a>
+    ftl_lock: &ShmLockGuard<'a>,
 ) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     // Get the excluded clients list
     let excluded_clients: Vec<String> = SetupVarsEntry::ApiExcludeClients
@@ -72,7 +72,7 @@ pub fn filter_excluded_clients<'a>(
 /// Apply the `SetupVarsEntry::ApiExcludeClients` setting to database queries
 pub fn filter_excluded_clients_db<'a>(
     db_query: queries::BoxedQuery<'a, Sqlite>,
-    env: &Env
+    env: &Env,
 ) -> Result<queries::BoxedQuery<'a, Sqlite>, Error> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -100,9 +100,9 @@ mod tests {
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
             database::execute_query,
-            testing::{test_memory, test_queries}
+            testing::{test_memory, test_queries},
         },
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
     use diesel::prelude::*;
 
@@ -118,7 +118,7 @@ mod tests {
             Box::new(queries.iter()),
             &env,
             &test_memory(),
-            &ShmLockGuard::Test
+            &ShmLockGuard::Test,
         )
         .unwrap()
         .collect();
@@ -146,7 +146,7 @@ mod tests {
             Box::new(queries.iter()),
             &env,
             &test_memory(),
-            &ShmLockGuard::Test
+            &ShmLockGuard::Test,
         )
         .unwrap()
         .collect();

@@ -15,7 +15,7 @@ use crate::settings::ValueType;
 pub enum List {
     White,
     Black,
-    Regex
+    Regex,
 }
 
 impl List {
@@ -24,7 +24,7 @@ impl List {
         match self {
             List::Regex => ValueType::Regex.is_valid(domain),
             // Allow hostnames to be white/blacklist-ed
-            _ => ValueType::Hostname.is_valid(domain)
+            _ => ValueType::Hostname.is_valid(domain),
         }
     }
 }

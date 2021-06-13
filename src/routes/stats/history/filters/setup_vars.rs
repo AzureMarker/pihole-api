@@ -13,7 +13,7 @@ use crate::{
     env::Env,
     ftl::{FtlQuery, BLOCKED_STATUSES},
     settings::{ConfigEntry, SetupVarsEntry},
-    util::Error
+    util::Error,
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 use std::iter;
@@ -22,13 +22,13 @@ use std::iter;
 /// `blockedonly`, etc).
 pub fn filter_setup_vars_setting<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
-    env: &Env
+    env: &Env,
 ) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     Ok(match SetupVarsEntry::ApiQueryLogShow.read(env)?.as_str() {
         "permittedonly" => Box::new(queries_iter.filter(|query| !query.is_blocked())),
         "blockedonly" => Box::new(queries_iter.filter(|query| query.is_blocked())),
         "nothing" => Box::new(iter::empty()),
-        _ => queries_iter
+        _ => queries_iter,
     })
 }
 
@@ -36,7 +36,7 @@ pub fn filter_setup_vars_setting<'a>(
 /// `blockedonly`, etc) to database results.
 pub fn filter_setup_vars_setting_db<'a>(
     db_query: queries::BoxedQuery<'a, Sqlite>,
-    env: &Env
+    env: &Env,
 ) -> Result<queries::BoxedQuery<'a, Sqlite>, Error> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -45,7 +45,7 @@ pub fn filter_setup_vars_setting_db<'a>(
         "permittedonly" => db_query.filter(status.ne_all(&BLOCKED_STATUSES)),
         "blockedonly" => db_query.filter(status.eq_any(&BLOCKED_STATUSES)),
         "nothing" => db_query.limit(0),
-        _ => db_query
+        _ => db_query,
     })
 }
 
@@ -57,7 +57,7 @@ mod test {
         env::PiholeFile,
         ftl::{FtlQuery, BLOCKED_STATUSES},
         routes::stats::history::{database::execute_query, testing::test_queries},
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
     use diesel::prelude::*;
 

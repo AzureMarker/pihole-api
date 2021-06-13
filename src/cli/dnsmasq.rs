@@ -12,7 +12,7 @@ use crate::{
     env::{Config, Env},
     routes::settings::restart_dns,
     settings::generate_dnsmasq_config,
-    util::Error
+    util::Error,
 };
 use std::path::Path;
 

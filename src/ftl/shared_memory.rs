@@ -11,9 +11,9 @@
 use crate::{
     ftl::{
         FtlClient, FtlCounters, FtlDomain, FtlOverTime, FtlQuery, FtlStrings, FtlUpstream, ShmLock,
-        ShmLockGuard
+        ShmLockGuard,
     },
-    util::Error
+    util::Error,
 };
 use shmem::{Array, Map, Object};
 use std::{marker::PhantomData, ops::Deref};
@@ -40,7 +40,7 @@ const FTL_SHM_SETTINGS: &str = "/FTL-settings";
 #[allow(clippy::large_enum_variant)]
 pub enum FtlMemory {
     Production {
-        lock: ShmLock
+        lock: ShmLock,
     },
     #[cfg(test)]
     Test {
@@ -51,15 +51,15 @@ pub enum FtlMemory {
         queries: Vec<FtlQuery>,
         strings: HashMap<usize, String>,
         counters: FtlCounters,
-        settings: FtlSettings
-    }
+        settings: FtlSettings,
+    },
 }
 
 impl FtlMemory {
     /// Create a production instance of `FtlMemory`
     pub fn production() -> FtlMemory {
         FtlMemory::Production {
-            lock: ShmLock::new()
+            lock: ShmLock::new(),
         }
     }
 
@@ -82,12 +82,12 @@ impl FtlMemory {
                 } else {
                     Err(Error::from(ErrorKind::SharedMemoryVersion(
                         version,
-                        FTL_SHM_VERSION
+                        FTL_SHM_VERSION,
                     )))
                 }
             }
             #[cfg(test)]
-            FtlMemory::Test { .. } => Ok(ShmLockGuard::Test)
+            FtlMemory::Test { .. } => Ok(ShmLockGuard::Test),
         }
     }
 
@@ -95,15 +95,15 @@ impl FtlMemory {
     /// dereference into `&[FtlClient]`.
     pub fn clients<'lock>(
         &'lock self,
-        _lock_guard: &ShmLockGuard<'lock>
+        _lock_guard: &ShmLockGuard<'lock>,
     ) -> Result<Box<dyn Deref<Target = [FtlClient]> + 'lock>, Error> {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_CLIENTS)?)?
+                Array::new(Object::open(FTL_SHM_CLIENTS)?)?,
             ),
             #[cfg(test)]
-            FtlMemory::Test { clients, .. } => Box::new(clients.as_slice())
+            FtlMemory::Test { clients, .. } => Box::new(clients.as_slice()),
         })
     }
 
@@ -111,15 +111,15 @@ impl FtlMemory {
     /// dereference into `&[FtlDomain]`.
     pub fn domains<'lock>(
         &'lock self,
-        _lock_guard: &ShmLockGuard<'lock>
+        _lock_guard: &ShmLockGuard<'lock>,
     ) -> Result<Box<dyn Deref<Target = [FtlDomain]> + 'lock>, Error> {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_DOMAINS)?)?
+                Array::new(Object::open(FTL_SHM_DOMAINS)?)?,
             ),
             #[cfg(test)]
-            FtlMemory::Test { domains, .. } => Box::new(domains.as_slice())
+            FtlMemory::Test { domains, .. } => Box::new(domains.as_slice()),
         })
     }
 
@@ -127,15 +127,15 @@ impl FtlMemory {
     /// dereference into `&[FtlOverTime]`.
     pub fn over_time<'lock>(
         &'lock self,
-        _lock_guard: &ShmLockGuard<'lock>
+        _lock_guard: &ShmLockGuard<'lock>,
     ) -> Result<Box<dyn Deref<Target = [FtlOverTime]> + 'lock>, Error> {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_OVERTIME)?)?
+                Array::new(Object::open(FTL_SHM_OVERTIME)?)?,
             ),
             #[cfg(test)]
-            FtlMemory::Test { over_time, .. } => Box::new(over_time.as_slice())
+            FtlMemory::Test { over_time, .. } => Box::new(over_time.as_slice()),
         })
     }
 
@@ -143,15 +143,15 @@ impl FtlMemory {
     /// dereference into `&[FtlUpstream]`.
     pub fn upstreams<'lock>(
         &'lock self,
-        _lock_guard: &ShmLockGuard<'lock>
+        _lock_guard: &ShmLockGuard<'lock>,
     ) -> Result<Box<dyn Deref<Target = [FtlUpstream]> + 'lock>, Error> {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_FORWARDED)?)?
+                Array::new(Object::open(FTL_SHM_FORWARDED)?)?,
             ),
             #[cfg(test)]
-            FtlMemory::Test { upstreams, .. } => Box::new(upstreams.as_slice())
+            FtlMemory::Test { upstreams, .. } => Box::new(upstreams.as_slice()),
         })
     }
 
@@ -159,29 +159,29 @@ impl FtlMemory {
     /// dereference into `&[FtlQuery]`.
     pub fn queries<'lock>(
         &'lock self,
-        _lock_guard: &ShmLockGuard<'lock>
+        _lock_guard: &ShmLockGuard<'lock>,
     ) -> Result<Box<dyn Deref<Target = [FtlQuery]> + 'lock>, Error> {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(
                 // Load the shared memory
-                Array::new(Object::open(FTL_SHM_QUERIES)?)?
+                Array::new(Object::open(FTL_SHM_QUERIES)?)?,
             ),
             #[cfg(test)]
-            FtlMemory::Test { queries, .. } => Box::new(queries.as_slice())
+            FtlMemory::Test { queries, .. } => Box::new(queries.as_slice()),
         })
     }
 
     /// Get the FTL shared memory string data
     pub fn strings<'lock>(
         &'lock self,
-        _lock_guard: &ShmLockGuard<'lock>
+        _lock_guard: &ShmLockGuard<'lock>,
     ) -> Result<FtlStrings<'lock>, Error> {
         Ok(match self {
             FtlMemory::Production { .. } => {
                 FtlStrings::Production(Array::new(Object::open(FTL_SHM_STRINGS)?)?, PhantomData)
             }
             #[cfg(test)]
-            FtlMemory::Test { strings, .. } => FtlStrings::Test(&strings)
+            FtlMemory::Test { strings, .. } => FtlStrings::Test(&strings),
         })
     }
 
@@ -189,12 +189,12 @@ impl FtlMemory {
     /// dereference into `&FtlCounters`.
     pub fn counters<'lock>(
         &'lock self,
-        _lock_guard: &ShmLockGuard<'lock>
+        _lock_guard: &ShmLockGuard<'lock>,
     ) -> Result<Box<dyn Deref<Target = FtlCounters> + 'lock>, Error> {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(Map::new(Object::open(FTL_SHM_COUNTERS)?)?),
             #[cfg(test)]
-            FtlMemory::Test { counters, .. } => Box::new(counters)
+            FtlMemory::Test { counters, .. } => Box::new(counters),
         })
     }
 
@@ -202,12 +202,12 @@ impl FtlMemory {
     /// dereference into `&FtlSettings`.
     pub fn settings<'lock>(
         &'lock self,
-        _lock_guard: &ShmLockGuard<'lock>
+        _lock_guard: &ShmLockGuard<'lock>,
     ) -> Result<Box<dyn Deref<Target = FtlSettings> + 'lock>, Error> {
         Ok(match self {
             FtlMemory::Production { .. } => Box::new(Map::new(Object::open(FTL_SHM_SETTINGS)?)?),
             #[cfg(test)]
-            FtlMemory::Test { settings, .. } => Box::new(settings)
+            FtlMemory::Test { settings, .. } => Box::new(settings),
         })
     }
 }

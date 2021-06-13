@@ -10,7 +10,7 @@
 
 use rocket::{
     form,
-    form::{FromFormField, ValueField}
+    form::{FromFormField, ValueField},
 };
 
 /// The FTL counters stored in shared memory
@@ -37,7 +37,7 @@ pub struct FtlCounters {
     pub reply_count_nxdomain: libc::c_int,
     pub reply_count_cname: libc::c_int,
     pub reply_count_ip: libc::c_int,
-    pub reply_count_domain: libc::c_int
+    pub reply_count_domain: libc::c_int,
 }
 
 impl FtlCounters {
@@ -59,7 +59,7 @@ pub enum FtlQueryType {
     SRV,
     SOA,
     PTR,
-    TXT
+    TXT,
 }
 
 #[rocket::async_trait]
@@ -85,7 +85,7 @@ impl FtlQueryType {
             FtlQueryType::SRV,
             FtlQueryType::SOA,
             FtlQueryType::PTR,
-            FtlQueryType::TXT
+            FtlQueryType::TXT,
         ]
     }
 
@@ -99,7 +99,7 @@ impl FtlQueryType {
             5 => Some(FtlQueryType::SOA),
             6 => Some(FtlQueryType::PTR),
             7 => Some(FtlQueryType::TXT),
-            _ => None
+            _ => None,
         }
     }
 

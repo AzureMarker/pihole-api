@@ -10,12 +10,12 @@
 
 use crate::{
     env::Env,
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::ResultExt;
 use nix::{
     sys::signal::{kill, Signal},
-    unistd::Pid
+    unistd::Pid,
 };
 use std::process::Command;
 

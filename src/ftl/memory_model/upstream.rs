@@ -22,7 +22,7 @@ pub struct FtlUpstream {
     name_str_id: libc::size_t,
     pub query_count: libc::c_int,
     pub failed_count: libc::c_int,
-    is_name_unknown: bool
+    is_name_unknown: bool,
 }
 
 impl FtlUpstream {
@@ -31,7 +31,7 @@ impl FtlUpstream {
         query_count: usize,
         failed_count: usize,
         ip_str_id: usize,
-        name_str_id: Option<usize>
+        name_str_id: Option<usize>,
     ) -> FtlUpstream {
         FtlUpstream {
             magic: MAGIC_BYTE,
@@ -39,7 +39,7 @@ impl FtlUpstream {
             failed_count: failed_count as libc::c_int,
             ip_str_id: ip_str_id as libc::size_t,
             name_str_id: name_str_id.unwrap_or_default() as libc::size_t,
-            is_name_unknown: name_str_id.is_none()
+            is_name_unknown: name_str_id.is_none(),
         }
     }
 
@@ -55,7 +55,7 @@ impl FtlUpstream {
             Some(
                 strings
                     .get_str(self.name_str_id as usize)
-                    .unwrap_or_default()
+                    .unwrap_or_default(),
             )
         } else {
             None

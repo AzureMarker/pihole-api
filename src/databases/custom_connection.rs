@@ -11,11 +11,11 @@
 use diesel::{
     connection::SimpleConnection,
     r2d2::{self, ConnectionManager, CustomizeConnection, Pool},
-    Connection, ConnectionError, SqliteConnection
+    Connection, ConnectionError, SqliteConnection,
 };
 use std::{
     ops::{Deref, DerefMut},
-    path::Path
+    path::Path,
 };
 
 /// A wrapper around `SqliteConnection` for use by
@@ -41,7 +41,7 @@ impl DerefMut for CustomSqliteConnection {
 pub struct CustomDBConfig {
     pub url: String,
     pub pool_size: u32,
-    pub test_schema: Option<String>
+    pub test_schema: Option<String>,
 }
 
 impl Default for CustomDBConfig {
@@ -49,18 +49,18 @@ impl Default for CustomDBConfig {
         CustomDBConfig {
             url: "".to_string(),
             pool_size: 8,
-            test_schema: None
+            test_schema: None,
         }
     }
 }
 
 impl CustomSqliteConnection {
     pub fn pool(
-        config: CustomDBConfig
+        config: CustomDBConfig,
     ) -> Result<Pool<CustomSqliteConnectionManager>, rocket_sync_db_pools::r2d2::Error> {
         let manager = CustomSqliteConnectionManager {
             manager: ConnectionManager::new(&config.url),
-            database_url: config.url
+            database_url: config.url,
         };
         let mut builder = Pool::builder().max_size(config.pool_size);
 
@@ -79,7 +79,7 @@ impl CustomSqliteConnection {
 /// and fails if the database does not exist
 pub struct CustomSqliteConnectionManager {
     manager: ConnectionManager<SqliteConnection>,
-    database_url: String
+    database_url: String,
 }
 
 impl r2d2::ManageConnection for CustomSqliteConnectionManager {
@@ -91,7 +91,7 @@ impl r2d2::ManageConnection for CustomSqliteConnectionManager {
         // a zero-sized DB without a schema. This would mess up other services.
         if self.database_url != ":memory:" && !Path::new(&self.database_url).exists() {
             return Err(r2d2::Error::ConnectionError(
-                ConnectionError::BadConnection(format!("{} does not exist", self.database_url))
+                ConnectionError::BadConnection(format!("{} does not exist", self.database_url)),
             ));
         }
 
@@ -116,7 +116,7 @@ impl r2d2::ManageConnection for CustomSqliteConnectionManager {
 /// Applies a schema to the database after connecting
 #[derive(Debug)]
 struct DatabaseSchemaApplier {
-    schema: String
+    schema: String,
 }
 
 impl CustomizeConnection<CustomSqliteConnection, r2d2::Error> for DatabaseSchemaApplier {

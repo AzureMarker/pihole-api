@@ -12,7 +12,7 @@ use crate::{
     databases::custom_connection::CustomDBConfig,
     env::Env,
     settings::{ConfigEntry, FtlConfEntry},
-    util::Error
+    util::Error,
 };
 use shaku::Interface;
 
@@ -20,13 +20,13 @@ use shaku::Interface;
 use {
     crate::{
         databases::custom_connection::{CustomSqliteConnection, CustomSqliteConnectionManager},
-        util::ErrorKind
+        util::ErrorKind,
     },
     diesel::{
         connection::{Connection, TransactionManager},
         r2d2::Pool,
-        SqliteConnection
-    }
+        SqliteConnection,
+    },
 };
 
 pub trait DatabaseService<C>: Interface {
@@ -37,7 +37,7 @@ pub fn load_gravity_db_config(env: &Env) -> Result<CustomDBConfig, Error> {
     Ok(CustomDBConfig {
         url: FtlConfEntry::GravityDb.read(env)?,
         pool_size: 8,
-        test_schema: None
+        test_schema: None,
     })
 }
 
@@ -45,7 +45,7 @@ pub fn load_ftl_db_config(env: &Env) -> Result<CustomDBConfig, Error> {
     Ok(CustomDBConfig {
         url: FtlConfEntry::DbFile.read(env)?,
         pool_size: 8,
-        test_schema: None
+        test_schema: None,
     })
 }
 
@@ -69,7 +69,7 @@ pub fn create_memory_db(schema: &str, pool_size: u32) -> Pool<CustomSqliteConnec
     let config = CustomDBConfig {
         url: ":memory:".to_owned(),
         pool_size,
-        test_schema: Some(schema.to_owned())
+        test_schema: Some(schema.to_owned()),
     };
 
     CustomSqliteConnection::pool(config).unwrap()

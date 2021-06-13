@@ -14,7 +14,7 @@
 pub struct FtlSettings {
     pub version: libc::c_int,
     pub global_shm_counter: libc::c_uint,
-    pub next_str_pos: libc::c_uint
+    pub next_str_pos: libc::c_uint,
 }
 
 impl Default for FtlSettings {
@@ -22,7 +22,7 @@ impl Default for FtlSettings {
         FtlSettings {
             version: 0,
             global_shm_counter: 0,
-            next_str_pos: 1 // 0 is used as the empty string
+            next_str_pos: 1, // 0 is used as the empty string
         }
     }
 }

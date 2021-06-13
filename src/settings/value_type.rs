@@ -13,7 +13,7 @@ use regex::Regex;
 use std::{
     net::{Ipv4Addr, Ipv6Addr},
     path::Path,
-    str::FromStr
+    str::FromStr,
 };
 
 /// Categories of allowable values, shared across settings files
@@ -45,7 +45,7 @@ pub enum ValueType {
     YesNo,
     WebPassword,
     String(&'static [&'static str]),
-    LanguageCode
+    LanguageCode,
 }
 
 impl ValueType {
@@ -103,7 +103,7 @@ impl ValueType {
                 }
 
                 let hostname_re = Regex::new(
-                    r"^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*)+(\.([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*))*$"
+                    r"^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*)+(\.([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*))*$",
                 )
                 .unwrap();
                 hostname_re.is_match(value)
@@ -162,7 +162,7 @@ impl ValueType {
                 // The CIDR must be a positive number
                 let cidr: usize = match value.parse() {
                     Ok(cidr) => cidr,
-                    Err(_) => return false
+                    Err(_) => return false,
                 };
 
                 cidr > 0 && cidr <= 128 && cidr % 4 == 0
@@ -189,7 +189,7 @@ impl ValueType {
             ValueType::String(strings) => strings.contains(&value),
             ValueType::LanguageCode => Regex::new("^[a-zA-Z]+(-[a-zA-Z]+)*$")
                 .unwrap()
-                .is_match(value)
+                .is_match(value),
         }
     }
 }
@@ -207,7 +207,7 @@ fn is_ipv4_valid(value: &str) -> bool {
                 && !ipv4.is_multicast()
                 && !ipv4.is_unspecified()
         }
-        Err(_) => false
+        Err(_) => false,
     }
 }
 
@@ -219,7 +219,7 @@ fn is_ipv6_valid(value: &str) -> bool {
             // (all others permitted)
             !ipv6.is_multicast() && !ipv6.is_unspecified()
         }
-        Err(_) => false
+        Err(_) => false,
     }
 }
 
@@ -266,15 +266,15 @@ mod tests {
         let tests = vec![
             (
                 ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
-                "1234"
+                "1234",
             ),
             (
                 ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
-                "true"
+                "true",
             ),
             (
                 ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
-                "pi.hole,127.0.0.1"
+                "pi.hole,127.0.0.1",
             ),
             (ValueType::Boolean, "false"),
             (ValueType::Decimal, "3.14"),
@@ -291,7 +291,7 @@ mod tests {
             (ValueType::IPv6, "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"),
             (
                 ValueType::IPv6OptionalPort,
-                "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c"
+                "f7c4:12f8:4f5a:8454:5241:cf80:d61c:3e2c",
             ),
             (ValueType::IPv6OptionalPort, "[1fff:0:a88:85a3::ac1f]:8001"),
             (ValueType::IPv6CIDR, "64"),
@@ -318,19 +318,19 @@ mod tests {
         let tests = vec![
             (
                 ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
-                "3/4"
+                "3/4",
             ),
             (
                 ValueType::Any(&[ValueType::Integer, ValueType::Boolean]),
-                "192.168.1.1"
+                "192.168.1.1",
             ),
             (
                 ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
-                "123, $test,"
+                "123, $test,",
             ),
             (
                 ValueType::Array(&[ValueType::Hostname, ValueType::IPv4]),
-                "123,"
+                "123,",
             ),
             (ValueType::Boolean, "yes"),
             (ValueType::Decimal, "3/4"),

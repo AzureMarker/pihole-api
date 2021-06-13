@@ -17,17 +17,17 @@ use crate::{
         stats::{
             common::{get_excluded_clients, HIDDEN_CLIENT},
             database::{
-                query_types_db::get_query_type_counts, summary_db::get_blocked_query_count
+                query_types_db::get_query_type_counts, summary_db::get_blocked_query_count,
             },
             top_clients::{
                 check_privacy_level_top_clients, TopClientItemReply, TopClientParams,
-                TopClientsReply
-            }
-        }
+                TopClientsReply,
+            },
+        },
     },
     services::PiholeModule,
     settings::ValueType,
-    util::{reply_result, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply},
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
@@ -43,14 +43,14 @@ pub fn top_clients_db(
     db: InjectProvided<PiholeModule, FtlDatabase>,
     from: u64,
     until: u64,
-    params: TopClientParams
+    params: TopClientParams,
 ) -> Reply {
     reply_result(top_clients_db_impl(
         &env,
         &db as &SqliteConnection,
         from,
         until,
-        params
+        params,
     ))
 }
 
@@ -60,7 +60,7 @@ fn top_clients_db_impl(
     db: &SqliteConnection,
     from: u64,
     until: u64,
-    params: TopClientParams
+    params: TopClientParams,
 ) -> Result<TopClientsReply, Error> {
     // Resolve the parameters (the inactive param is ignored)
     let limit = params.limit.unwrap_or(10);
@@ -95,14 +95,14 @@ fn top_clients_db_impl(
                     TopClientItemReply {
                         name: "".to_owned(),
                         ip: client_identifier,
-                        count: count as usize
+                        count: count as usize,
                     }
                 } else {
                     // If the identifier is not an IP address, use it as the name
                     TopClientItemReply {
                         name: client_identifier,
                         ip: "".to_owned(),
-                        count: count as usize
+                        count: count as usize,
                     }
                 }
             })
@@ -113,13 +113,13 @@ fn top_clients_db_impl(
         Ok(TopClientsReply {
             top_clients,
             total_queries: None,
-            blocked_queries: Some(total_count)
+            blocked_queries: Some(total_count),
         })
     } else {
         Ok(TopClientsReply {
             top_clients,
             total_queries: Some(total_count),
-            blocked_queries: None
+            blocked_queries: None,
         })
     }
 }
@@ -145,7 +145,7 @@ fn execute_top_clients_query(
     ignored_clients: Vec<String>,
     blocked: bool,
     ascending: bool,
-    limit: usize
+    limit: usize,
 ) -> Result<Vec<(String, i64)>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -192,7 +192,7 @@ mod test {
         databases::ftl::connect_to_ftl_test_db,
         env::PiholeFile,
         routes::stats::top_clients::{TopClientItemReply, TopClientParams, TopClientsReply},
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
 
     const FROM_TIMESTAMP: u64 = 0;
@@ -206,16 +206,16 @@ mod test {
                 TopClientItemReply {
                     name: "".to_owned(),
                     ip: "127.0.0.1".to_owned(),
-                    count: 93
+                    count: 93,
                 },
                 TopClientItemReply {
                     name: "".to_owned(),
                     ip: "10.1.1.1".to_owned(),
-                    count: 1
+                    count: 1,
                 },
             ],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
@@ -237,7 +237,7 @@ mod test {
         let expected = TopClientsReply {
             top_clients: Vec::new(),
             total_queries: None,
-            blocked_queries: Some(0)
+            blocked_queries: Some(0),
         };
 
         let db = connect_to_ftl_test_db();
@@ -262,10 +262,10 @@ mod test {
             top_clients: vec![TopClientItemReply {
                 name: "".to_owned(),
                 ip: "127.0.0.1".to_owned(),
-                count: 93
+                count: 93,
             }],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
@@ -291,16 +291,16 @@ mod test {
                 TopClientItemReply {
                     name: "".to_owned(),
                     ip: "10.1.1.1".to_owned(),
-                    count: 1
+                    count: 1,
                 },
                 TopClientItemReply {
                     name: "".to_owned(),
                     ip: "127.0.0.1".to_owned(),
-                    count: 93
+                    count: 93,
                 },
             ],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
@@ -324,7 +324,7 @@ mod test {
         let expected = TopClientsReply {
             top_clients: Vec::new(),
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();
@@ -345,7 +345,7 @@ mod test {
         let expected = TopClientsReply {
             top_clients: Vec::new(),
             total_queries: None,
-            blocked_queries: Some(0)
+            blocked_queries: Some(0),
         };
 
         let db = connect_to_ftl_test_db();
@@ -369,10 +369,10 @@ mod test {
             top_clients: vec![TopClientItemReply {
                 name: "".to_owned(),
                 ip: "10.1.1.1".to_owned(),
-                count: 1
+                count: 1,
             }],
             total_queries: Some(94),
-            blocked_queries: None
+            blocked_queries: None,
         };
 
         let db = connect_to_ftl_test_db();

@@ -13,7 +13,7 @@ use crate::{
     env::Env,
     ftl::{FtlMemory, FtlQuery, ShmLockGuard},
     settings::{ConfigEntry, SetupVarsEntry},
-    util::Error
+    util::Error,
 };
 use diesel::{prelude::*, sqlite::Sqlite};
 use std::collections::HashSet;
@@ -23,7 +23,7 @@ pub fn filter_excluded_domains<'a>(
     queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
     env: &Env,
     ftl_memory: &FtlMemory,
-    ftl_lock: &ShmLockGuard<'a>
+    ftl_lock: &ShmLockGuard<'a>,
 ) -> Result<Box<dyn Iterator<Item = &'a FtlQuery> + 'a>, Error> {
     // Get the excluded domains list
     let excluded_domains: Vec<String> = SetupVarsEntry::ApiExcludeDomains
@@ -69,7 +69,7 @@ pub fn filter_excluded_domains<'a>(
 /// Apply the `SetupVarsEntry::ApiExcludeDomains` setting to database queries
 pub fn filter_excluded_domains_db<'a>(
     db_query: queries::BoxedQuery<'a, Sqlite>,
-    env: &Env
+    env: &Env,
 ) -> Result<queries::BoxedQuery<'a, Sqlite>, Error> {
     // Use the Diesel DSL of this table for easy querying
     use self::queries::dsl::*;
@@ -97,9 +97,9 @@ mod tests {
         ftl::{FtlQuery, ShmLockGuard},
         routes::stats::history::{
             database::execute_query,
-            testing::{test_memory, test_queries}
+            testing::{test_memory, test_queries},
         },
-        testing::TestEnvBuilder
+        testing::TestEnvBuilder,
     };
     use diesel::prelude::*;
 
@@ -115,7 +115,7 @@ mod tests {
             Box::new(queries.iter()),
             &env,
             &test_memory(),
-            &ShmLockGuard::Test
+            &ShmLockGuard::Test,
         )
         .unwrap()
         .collect();
@@ -137,7 +137,7 @@ mod tests {
             Box::new(queries.iter()),
             &env,
             &test_memory(),
-            &ShmLockGuard::Test
+            &ShmLockGuard::Test,
         )
         .unwrap()
         .collect();
@@ -154,7 +154,7 @@ mod tests {
         let env = TestEnvBuilder::new()
             .file(
                 PiholeFile::SetupVars,
-                "API_EXCLUDE_DOMAINS=0.ubuntu.pool.ntp.org,1.ubuntu.pool.ntp.org"
+                "API_EXCLUDE_DOMAINS=0.ubuntu.pool.ntp.org,1.ubuntu.pool.ntp.org",
             )
             .build();
 

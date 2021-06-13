@@ -11,7 +11,7 @@
 use crate::util::{reply_success, Error, ErrorKind, Reply};
 use rocket::{
     http::{Cookie, CookieJar},
-    request::{self, FromRequest, Outcome, Request}
+    request::{self, FromRequest, Outcome, Request},
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -20,13 +20,13 @@ const AUTH_HEADER: &str = "X-Pi-hole-Authenticate";
 
 /// When used as a request guard, requests must be authenticated
 pub struct User {
-    pub id: usize
+    pub id: usize,
 }
 
 /// Stores the API key in the server state
 pub struct AuthData {
     key: Option<String>,
-    next_id: AtomicUsize
+    next_id: AtomicUsize,
 }
 
 impl User {
@@ -47,7 +47,7 @@ impl User {
             Cookie::build(USER_ATTR, user.id.to_string())
                 // Allow the web interface to read the cookie
                 .http_only(false)
-                .finish()
+                .finish(),
         );
 
         user
@@ -72,7 +72,7 @@ impl<'r> FromRequest<'r> for User {
         // Load the auth data
         let auth_data: &AuthData = match request.rocket().state() {
             Some(auth_data) => auth_data,
-            None => return Error::from(ErrorKind::Unknown).into_outcome()
+            None => return Error::from(ErrorKind::Unknown).into_outcome(),
         };
 
         // Check if a key is required for authentication
@@ -101,7 +101,7 @@ impl AuthData {
     pub fn new(key: Option<String>) -> AuthData {
         AuthData {
             key,
-            next_id: AtomicUsize::new(1)
+            next_id: AtomicUsize::new(1),
         }
     }
 
@@ -123,7 +123,7 @@ impl AuthData {
     /// Create a new user and increment `next_id`
     fn create_user(&self) -> User {
         User {
-            id: self.next_id.fetch_add(1, Ordering::Relaxed)
+            id: self.next_id.fetch_add(1, Ordering::Relaxed),
         }
     }
 }
@@ -184,7 +184,7 @@ mod test {
             .should_auth(false)
             .header(Header::new(
                 "X-Pi-hole-Authenticate",
-                "obviously_not_correct"
+                "obviously_not_correct",
             ))
             .expect_status(Status::Unauthorized)
             .expect_json(json!({

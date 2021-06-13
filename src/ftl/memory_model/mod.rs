@@ -31,5 +31,5 @@ pub use self::{
     query::{FtlDnssecType, FtlQuery, FtlQueryReplyType, FtlQueryStatus, BLOCKED_STATUSES},
     settings::FtlSettings,
     strings::FtlStrings,
-    upstream::FtlUpstream
+    upstream::FtlUpstream,
 };

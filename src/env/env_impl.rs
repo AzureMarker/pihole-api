@@ -10,14 +10,14 @@
 
 use crate::{
     env::{Config, PiholeFile},
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::ResultExt;
 use std::{
     fs::{self, File, OpenOptions},
     io::{BufRead, BufReader},
     os::unix::fs::OpenOptionsExt,
-    path::Path
+    path::Path,
 };
 
 #[cfg(test)]
@@ -26,7 +26,7 @@ use shaku::{Component, Module, ModuleBuildContext};
 #[cfg(test)]
 use std::{
     collections::HashMap,
-    io::{self, Read, Write}
+    io::{self, Read, Write},
 };
 #[cfg(test)]
 use tempfile::{tempfile, NamedTempFile};
@@ -36,7 +36,7 @@ use tempfile::{tempfile, NamedTempFile};
 pub enum Env {
     Production(Config),
     #[cfg(test)]
-    Test(Config, HashMap<PiholeFile, NamedTempFile>)
+    Test(Config, HashMap<PiholeFile, NamedTempFile>),
 }
 
 // TODO: make this less awkward?
@@ -62,7 +62,7 @@ impl Clone for Env {
             // There is no good way to copy NamedTempFiles, and we shouldn't be
             // doing that during a test anyways
             #[cfg(test)]
-            Env::Test(_, _) => unimplemented!()
+            Env::Test(_, _) => unimplemented!(),
         }
     }
 }
@@ -73,7 +73,7 @@ impl Env {
         match self {
             Env::Production(config) => config,
             #[cfg(test)]
-            Env::Test(config, _) => config
+            Env::Test(config, _) => config,
         }
     }
 
@@ -82,7 +82,7 @@ impl Env {
         match self {
             Env::Production(config) => config.file_locations.get(file),
             #[cfg(test)]
-            Env::Test(_, _) => file.default_location()
+            Env::Test(_, _) => file.default_location(),
         }
     }
 
@@ -104,9 +104,9 @@ impl Env {
                 // Return a NotFound error, wrapped in a FileRead error
                 None => Err(Error::from(
                     io::Error::from(io::ErrorKind::NotFound)
-                        .context(ErrorKind::FileRead(self.file_location(file).to_owned()))
-                ))
-            }
+                        .context(ErrorKind::FileRead(self.file_location(file).to_owned())),
+                )),
+            },
         }
     }
 
@@ -145,7 +145,7 @@ impl Env {
                         // Return a NotFound error, wrapped in a FileRead error
                         return Err(Error::from(
                             io::Error::from(io::ErrorKind::NotFound)
-                                .context(ErrorKind::FileRead(self.file_location(file).to_owned()))
+                                .context(ErrorKind::FileRead(self.file_location(file).to_owned())),
                         ));
                     }
                 };
@@ -179,7 +179,7 @@ impl Env {
                         // Return a NotFound error, wrapped in a FileRead error
                         return Err(Error::from(
                             io::Error::from(io::ErrorKind::NotFound)
-                                .context(ErrorKind::FileRead(self.file_location(from).to_owned()))
+                                .context(ErrorKind::FileRead(self.file_location(from).to_owned())),
                         ));
                     }
                 };
@@ -187,7 +187,7 @@ impl Env {
                 let mut to_file = match map.get(&to) {
                     Some(file) => file.reopen().context(ErrorKind::Unknown)?,
                     // It's fine if the to file does not exist, create one
-                    None => tempfile().context(ErrorKind::Unknown)?
+                    None => tempfile().context(ErrorKind::Unknown)?,
                 };
 
                 // Copy the data from the "from" file to the "to" file.
@@ -211,7 +211,7 @@ impl Env {
         match self {
             Env::Production(_) => Path::new(self.file_location(file)).is_file(),
             #[cfg(test)]
-            Env::Test(_, map) => map.contains_key(&file)
+            Env::Test(_, map) => map.contains_key(&file),
         }
     }
 
@@ -220,7 +220,7 @@ impl Env {
         match self {
             Env::Production(_) => false,
             #[cfg(test)]
-            Env::Test(_, _) => true
+            Env::Test(_, _) => true,
         }
     }
 }

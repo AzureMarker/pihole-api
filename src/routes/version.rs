@@ -13,7 +13,7 @@ use crate::{
     ftl::FtlConnectionType,
     routes::web::WebAssets,
     services::PiholeModule,
-    util::{reply_data, Error, ErrorKind, Reply}
+    util::{reply_data, Error, ErrorKind, Reply},
 };
 use failure::ResultExt;
 use shaku_rocket::Inject;
@@ -23,7 +23,7 @@ use std::{io::Read, str};
 #[get("/version")]
 pub fn version(
     env: Inject<PiholeModule, Env>,
-    ftl: Inject<PiholeModule, FtlConnectionType>
+    ftl: Inject<PiholeModule, FtlConnectionType>,
 ) -> Reply {
     let core_version = read_core_version(&env).unwrap_or_default();
     let web_version = read_web_version().unwrap_or_default();
@@ -43,7 +43,7 @@ fn read_api_version() -> Version {
     Version {
         tag: env!("GIT_TAG").to_owned(),
         branch: env!("GIT_BRANCH").to_owned(),
-        hash: env!("GIT_HASH").get(0..7).unwrap_or_default().to_owned() // Use a short hash
+        hash: env!("GIT_HASH").get(0..7).unwrap_or_default().to_owned(), // Use a short hash
     }
 }
 
@@ -84,7 +84,7 @@ fn parse_web_version(version_str: &str) -> Result<Version, Error> {
     Ok(Version {
         tag: version_split[0].to_owned(),
         branch: version_split[1].to_owned(),
-        hash: version_split[2].to_owned()
+        hash: version_split[2].to_owned(),
     })
 }
 
@@ -96,12 +96,12 @@ fn read_core_version(env: &Env) -> Result<Version, Error> {
     env.read_file(PiholeFile::LocalVersions)?
         .read_to_string(&mut local_versions)
         .context(ErrorKind::FileRead(
-            env.file_location(PiholeFile::LocalVersions).to_owned()
+            env.file_location(PiholeFile::LocalVersions).to_owned(),
         ))?;
     env.read_file(PiholeFile::LocalBranches)?
         .read_to_string(&mut local_branches)
         .context(ErrorKind::FileRead(
-            env.file_location(PiholeFile::LocalBranches).to_owned()
+            env.file_location(PiholeFile::LocalBranches).to_owned(),
         ))?;
 
     // These files are structured as "CORE WEB FTL", but we only want Core's data
@@ -131,7 +131,7 @@ fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, Error> 
         tag: tag.to_owned(),
         branch: branch.to_owned(),
         // Ignore the beginning "g" character
-        hash: split[2].get(1..).unwrap_or_default().to_owned()
+        hash: split[2].get(1..).unwrap_or_default().to_owned(),
     })
 }
 
@@ -140,7 +140,7 @@ fn parse_git_version(git_version: &str, branch: &str) -> Result<Version, Error> 
 struct Version {
     tag: String,
     branch: String,
-    hash: String
+    hash: String,
 }
 
 #[cfg(test)]
@@ -151,7 +151,7 @@ mod tests {
         ftl::FtlConnectionType,
         routes::version::read_core_version,
         testing::{write_eom, TestEnvBuilder},
-        util::ErrorKind
+        util::ErrorKind,
     };
     use rmp::encode;
     use std::collections::HashMap;
@@ -255,11 +255,11 @@ mod tests {
         let test_env = TestEnvBuilder::new()
             .file(
                 PiholeFile::LocalVersions,
-                "v3.3.1-219-g6689e00 v3.3-190-gf7e1a28 vDev-d06deca"
+                "v3.3.1-219-g6689e00 v3.3-190-gf7e1a28 vDev-d06deca",
             )
             .file(
                 PiholeFile::LocalBranches,
-                "development devel tweak/getClientNames"
+                "development devel tweak/getClientNames",
             )
             .build();
 
@@ -278,11 +278,11 @@ mod tests {
         let test_env = TestEnvBuilder::new()
             .file(
                 PiholeFile::LocalVersions,
-                "invalid v3.3-190-gf7e1a28 vDev-d06deca"
+                "invalid v3.3-190-gf7e1a28 vDev-d06deca",
             )
             .file(
                 PiholeFile::LocalBranches,
-                "development devel tweak/getClientNames"
+                "development devel tweak/getClientNames",
             )
             .build();
 

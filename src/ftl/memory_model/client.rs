@@ -15,7 +15,7 @@ use std::hash::{Hash, Hasher};
 use crate::ftl::memory_model::MAGIC_BYTE;
 #[cfg(test)]
 use std::fmt::{
-    self, {Debug, Formatter}
+    self, {Debug, Formatter},
 };
 
 /// Represents an FTL client in API responses
@@ -23,7 +23,7 @@ use std::fmt::{
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct ClientReply {
     pub name: String,
-    pub ip: String
+    pub ip: String,
 }
 
 /// The client struct stored in shared memory.
@@ -45,7 +45,7 @@ pub struct FtlClient {
     pub blocked_count: libc::c_int,
     pub over_time: [libc::c_int; OVERTIME_SLOTS],
     arp_query_count: libc::c_uint,
-    is_name_unknown: bool
+    is_name_unknown: bool,
 }
 
 impl FtlClient {
@@ -54,7 +54,7 @@ impl FtlClient {
         query_count: usize,
         blocked_count: usize,
         ip_str_id: usize,
-        name_str_id: Option<usize>
+        name_str_id: Option<usize>,
     ) -> FtlClient {
         FtlClient {
             magic: MAGIC_BYTE,
@@ -65,7 +65,7 @@ impl FtlClient {
             is_name_unknown: name_str_id.is_none(),
             over_time: [0; OVERTIME_SLOTS],
             last_query_time: 0,
-            arp_query_count: 0
+            arp_query_count: 0,
         }
     }
 
@@ -105,7 +105,7 @@ impl FtlClient {
 
         ClientReply {
             name: name.to_owned(),
-            ip: ip.to_owned()
+            ip: ip.to_owned(),
         }
     }
 }
@@ -122,7 +122,7 @@ impl Default for FtlClient {
             is_name_unknown: true,
             over_time: [0; OVERTIME_SLOTS],
             last_query_time: 0,
-            arp_query_count: 0
+            arp_query_count: 0,
         }
     }
 }

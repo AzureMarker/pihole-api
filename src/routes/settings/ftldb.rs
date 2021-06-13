@@ -12,7 +12,7 @@ use crate::{
     ftl::FtlConnectionType,
     routes::auth::User,
     services::PiholeModule,
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
 use shaku_rocket::Inject;
 

@@ -10,13 +10,13 @@
 
 use crate::{
     env::config::{file_locations::Files, general::General, web::WebConfig},
-    util::{Error, ErrorKind}
+    util::{Error, ErrorKind},
 };
 use failure::{Fail, ResultExt};
 use std::{
     fs::File,
     io::{self, prelude::*},
-    path::Path
+    path::Path,
 };
 
 /// The default config location
@@ -30,7 +30,7 @@ pub struct Config {
     #[serde(default)]
     pub file_locations: Files,
     #[serde(default)]
-    pub web: WebConfig
+    pub web: WebConfig,
 }
 
 impl Config {
@@ -53,8 +53,8 @@ impl Config {
                         Ok(Self::default())
                     }
                     _ => Err(Error::from(e.context(ErrorKind::FileRead(
-                        config_location.display().to_string()
-                    ))))
+                        config_location.display().to_string(),
+                    )))),
                 }
             }
         };

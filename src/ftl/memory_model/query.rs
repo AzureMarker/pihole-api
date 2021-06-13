@@ -11,7 +11,7 @@
 use crate::{ftl::FtlQueryType, settings::FtlPrivacyLevel};
 use rocket::{
     form,
-    form::{FromFormField, ValueField}
+    form::{FromFormField, ValueField},
 };
 
 /// A list of query statuses which mark a query as blocked
@@ -21,7 +21,7 @@ pub const BLOCKED_STATUSES: [i32; 6] = [
     FtlQueryStatus::Blacklist as i32,
     FtlQueryStatus::ExternalBlockIp as i32,
     FtlQueryStatus::ExternalBlockNull as i32,
-    FtlQueryStatus::ExternalBlockNxdomainRa as i32
+    FtlQueryStatus::ExternalBlockNxdomainRa as i32,
 ];
 
 /// The query struct stored in shared memory
@@ -45,7 +45,7 @@ pub struct FtlQuery {
     pub response_time: libc::c_ulong,
     pub database_id: i64,
     pub time_index: libc::c_uint,
-    pub is_complete: bool
+    pub is_complete: bool,
 }
 
 impl FtlQuery {
@@ -68,7 +68,7 @@ pub enum FtlQueryStatus {
     Blacklist,
     ExternalBlockIp,
     ExternalBlockNull,
-    ExternalBlockNxdomainRa
+    ExternalBlockNxdomainRa,
 }
 
 impl FtlQueryStatus {
@@ -84,7 +84,7 @@ impl FtlQueryStatus {
             6 => Some(FtlQueryStatus::ExternalBlockIp),
             7 => Some(FtlQueryStatus::ExternalBlockNull),
             8 => Some(FtlQueryStatus::ExternalBlockNxdomainRa),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -116,7 +116,7 @@ pub enum FtlQueryReplyType {
     SERVFAIL,
     REFUSED,
     NOTIMP,
-    OTHER
+    OTHER,
 }
 
 impl FtlQueryReplyType {
@@ -134,7 +134,7 @@ impl FtlQueryReplyType {
             8 => Some(FtlQueryReplyType::REFUSED),
             9 => Some(FtlQueryReplyType::NOTIMP),
             10 => Some(FtlQueryReplyType::OTHER),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -160,7 +160,7 @@ pub enum FtlDnssecType {
     Insecure,
     Bogus,
     Abandoned,
-    Unknown
+    Unknown,
 }
 
 impl FtlDnssecType {
@@ -173,7 +173,7 @@ impl FtlDnssecType {
             3 => Some(FtlDnssecType::Bogus),
             4 => Some(FtlDnssecType::Abandoned),
             5 => Some(FtlDnssecType::Unknown),
-            _ => None
+            _ => None,
         }
     }
 }

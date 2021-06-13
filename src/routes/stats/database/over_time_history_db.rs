@@ -13,7 +13,7 @@ use crate::{
     ftl::BLOCKED_STATUSES,
     routes::{auth::User, stats::over_time_history::OverTimeItem},
     services::PiholeModule,
-    util::{reply_result, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply},
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt};
 use failure::ResultExt;
@@ -30,13 +30,13 @@ pub fn over_time_history_db(
     until: u64,
     interval: Option<usize>,
     _auth: User,
-    db: InjectProvided<PiholeModule, FtlDatabase>
+    db: InjectProvided<PiholeModule, FtlDatabase>,
 ) -> Reply {
     reply_result(over_time_history_db_impl(
         from,
         until,
         interval.unwrap_or(600),
-        &db as &SqliteConnection
+        &db as &SqliteConnection,
     ))
 }
 
@@ -45,7 +45,7 @@ fn over_time_history_db_impl(
     from: u64,
     until: u64,
     interval: usize,
-    db: &SqliteConnection
+    db: &SqliteConnection,
 ) -> Result<Vec<OverTimeItem>, Error> {
     let (from, until) = align_from_until(from, until, interval as u64)?;
 
@@ -65,7 +65,7 @@ fn over_time_history_db_impl(
             // Display the timestamps as centered in the overTime slot interval
             timestamp: timestamp + (interval / 2) as u64,
             total_queries,
-            blocked_queries
+            blocked_queries,
         });
     }
 
@@ -95,7 +95,7 @@ fn get_total_intervals(
     from: u64,
     until: u64,
     interval: usize,
-    db: &SqliteConnection
+    db: &SqliteConnection,
 ) -> Result<HashMap<i32, i64>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -127,7 +127,7 @@ fn get_blocked_intervals(
     from: u64,
     until: u64,
     interval: usize,
-    db: &SqliteConnection
+    db: &SqliteConnection,
 ) -> Result<HashMap<i32, i64>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -158,7 +158,7 @@ fn get_blocked_intervals(
 mod test {
     use super::{get_blocked_intervals, get_total_intervals, over_time_history_db_impl};
     use crate::{
-        databases::ftl::connect_to_ftl_test_db, routes::stats::over_time_history::OverTimeItem
+        databases::ftl::connect_to_ftl_test_db, routes::stats::over_time_history::OverTimeItem,
     };
     use std::collections::HashMap;
 
@@ -173,17 +173,17 @@ mod test {
             OverTimeItem {
                 timestamp: 164_700,
                 total_queries: 26,
-                blocked_queries: 0
+                blocked_queries: 0,
             },
             OverTimeItem {
                 timestamp: 165_300,
                 total_queries: 7,
-                blocked_queries: 0
+                blocked_queries: 0,
             },
             OverTimeItem {
                 timestamp: 165_900,
                 total_queries: 0,
-                blocked_queries: 0
+                blocked_queries: 0,
             },
         ];
 

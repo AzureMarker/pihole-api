@@ -24,5 +24,5 @@ mod upstream;
 
 pub use self::{
     blocked::*, client::*, dnssec::*, domain::*, exclude_clients::*, exclude_domains::*,
-    private::*, query_type::*, reply::*, setup_vars::*, status::*, time::*, upstream::*
+    private::*, query_type::*, reply::*, setup_vars::*, status::*, time::*, upstream::*,
 };

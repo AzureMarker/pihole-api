@@ -11,7 +11,7 @@
 use crate::{
     ftl::FtlMemory,
     routes::stats::common::get_current_over_time_slot,
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
 use rocket::State;
 
@@ -47,14 +47,14 @@ pub fn over_time_history(ftl_memory: &State<FtlMemory>) -> Reply {
 pub struct OverTimeItem {
     pub timestamp: u64,
     pub total_queries: usize,
-    pub blocked_queries: usize
+    pub blocked_queries: usize,
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
         ftl::{FtlCounters, FtlMemory, FtlOverTime, FtlSettings},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use std::collections::HashMap;
 
@@ -74,7 +74,7 @@ mod test {
             strings: HashMap::new(),
             domains: Vec::new(),
             queries: Vec::new(),
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 

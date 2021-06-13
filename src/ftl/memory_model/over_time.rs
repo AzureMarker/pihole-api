@@ -25,7 +25,7 @@ pub struct FtlOverTime {
     pub blocked_queries: libc::c_int,
     pub cached_queries: libc::c_int,
     pub forwarded_queries: libc::c_int,
-    query_types: [libc::c_int; 7]
+    query_types: [libc::c_int; 7],
 }
 
 impl FtlOverTime {
@@ -36,7 +36,7 @@ impl FtlOverTime {
         blocked_queries: usize,
         cached_queries: usize,
         forwarded_queries: usize,
-        query_types: [libc::c_int; 7]
+        query_types: [libc::c_int; 7],
     ) -> FtlOverTime {
         FtlOverTime {
             magic: MAGIC_BYTE,
@@ -45,7 +45,7 @@ impl FtlOverTime {
             blocked_queries: blocked_queries as libc::c_int,
             cached_queries: cached_queries as libc::c_int,
             forwarded_queries: forwarded_queries as libc::c_int,
-            query_types
+            query_types,
         }
     }
 }

@@ -11,7 +11,7 @@
 use crate::{
     ftl::{FtlMemory, FtlQueryType},
     routes::auth::User,
-    util::{reply_result, Error, Reply}
+    util::{reply_result, Error, Reply},
 };
 use rocket::State;
 
@@ -32,7 +32,7 @@ fn query_types_impl(ftl_memory: &FtlMemory) -> Result<Vec<QueryTypeReply>, Error
         .iter()
         .map(|&variant| QueryTypeReply {
             name: variant.get_name(),
-            count: counters.query_type(variant)
+            count: counters.query_type(variant),
         })
         .collect())
 }
@@ -42,7 +42,7 @@ fn query_types_impl(ftl_memory: &FtlMemory) -> Result<Vec<QueryTypeReply>, Error
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct QueryTypeReply {
     pub name: String,
-    pub count: usize
+    pub count: usize,
 }
 
 #[cfg(test)]
@@ -50,7 +50,7 @@ mod test {
     use super::query_types_impl;
     use crate::{
         ftl::{FtlCounters, FtlMemory, FtlSettings},
-        routes::stats::query_types::QueryTypeReply
+        routes::stats::query_types::QueryTypeReply,
     };
     use std::collections::HashMap;
 
@@ -67,7 +67,7 @@ mod test {
             upstreams: Vec::new(),
             queries: Vec::new(),
             clients: Vec::new(),
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 
@@ -77,31 +77,31 @@ mod test {
         let expected = vec![
             QueryTypeReply {
                 name: "A".to_owned(),
-                count: 2
+                count: 2,
             },
             QueryTypeReply {
                 name: "AAAA".to_owned(),
-                count: 2
+                count: 2,
             },
             QueryTypeReply {
                 name: "ANY".to_owned(),
-                count: 1
+                count: 1,
             },
             QueryTypeReply {
                 name: "SRV".to_owned(),
-                count: 1
+                count: 1,
             },
             QueryTypeReply {
                 name: "SOA".to_owned(),
-                count: 1
+                count: 1,
             },
             QueryTypeReply {
                 name: "PTR".to_owned(),
-                count: 2
+                count: 2,
             },
             QueryTypeReply {
                 name: "TXT".to_owned(),
-                count: 1
+                count: 1,
             },
         ];
 

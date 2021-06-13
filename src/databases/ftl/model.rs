@@ -11,15 +11,15 @@
 use crate::{
     databases::{
         custom_connection::{
-            CustomDBConfig, CustomSqliteConnection, CustomSqliteConnectionManager
+            CustomDBConfig, CustomSqliteConnection, CustomSqliteConnectionManager,
         },
-        DatabaseService
+        DatabaseService,
     },
     ftl::{FtlDnssecType, FtlQueryReplyType},
     routes::stats::history::QueryReply,
     settings::{ConfigEntry, FtlConfEntry},
     util,
-    util::ErrorKind
+    util::ErrorKind,
 };
 use diesel::SqliteConnection;
 use failure::{Fail, ResultExt};
@@ -31,7 +31,7 @@ fn default_connection() -> Pool<CustomSqliteConnectionManager> {
     let config = CustomDBConfig {
         url: FtlConfEntry::DbFile.get_default().to_owned(),
         pool_size: 8,
-        test_schema: None
+        test_schema: None,
     };
 
     CustomSqliteConnection::pool(config).unwrap()
@@ -41,7 +41,7 @@ fn default_connection() -> Pool<CustomSqliteConnectionManager> {
 #[shaku(interface = DatabaseService<FtlDatabase>)]
 pub struct FtlDatabasePool {
     #[shaku(default = default_connection())]
-    pool: Pool<CustomSqliteConnectionManager>
+    pool: Pool<CustomSqliteConnectionManager>,
 }
 
 impl DatabaseService<FtlDatabase> for FtlDatabasePool {
@@ -78,13 +78,13 @@ impl<M: Module + HasComponent<dyn DatabaseService<FtlDatabase>>> Provider<M> for
 pub enum FtlTableEntry {
     Version,
     LastTimestamp,
-    FirstCounterTimestamp
+    FirstCounterTimestamp,
 }
 
 #[allow(dead_code)]
 pub enum CounterTableEntry {
     TotalQueries,
-    BlockedQueries
+    BlockedQueries,
 }
 
 #[cfg_attr(test, derive(PartialEq, Debug))]
@@ -96,7 +96,7 @@ pub struct FtlDbQuery {
     pub status: i32,
     pub domain: String,
     pub client: String,
-    pub upstream: Option<String>
+    pub upstream: Option<String>,
 }
 
 impl From<FtlDbQuery> for QueryReply {
@@ -109,7 +109,7 @@ impl From<FtlDbQuery> for QueryReply {
             client: query.client,
             dnssec: FtlDnssecType::Unknown as u8,
             reply: FtlQueryReplyType::Unknown as u8,
-            response_time: 0
+            response_time: 0,
         }
     }
 }

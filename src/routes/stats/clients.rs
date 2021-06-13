@@ -13,11 +13,11 @@ use crate::{
     ftl::{ClientReply, FtlClient, FtlMemory, ShmLockGuard},
     routes::{
         auth::User,
-        stats::common::{remove_excluded_clients, remove_hidden_clients}
+        stats::common::{remove_excluded_clients, remove_hidden_clients},
     },
     services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_result, Error, Reply}
+    util::{reply_result, Error, Reply},
 };
 use rocket::State;
 use shaku_rocket::Inject;
@@ -30,7 +30,7 @@ pub fn clients(
     _auth: User,
     ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
-    params: ClientParams
+    params: ClientParams,
 ) -> Reply {
     reply_result(get_clients(ftl_memory, &env, params))
 }
@@ -38,14 +38,14 @@ pub fn clients(
 /// The possible GET parameters for `/stats/clients`
 #[derive(FromForm, Default)]
 pub struct ClientParams {
-    inactive: Option<bool>
+    inactive: Option<bool>,
 }
 
 /// Get client data for API output according to the parameters
 fn get_clients(
     ftl_memory: &FtlMemory,
     env: &Env,
-    params: ClientParams
+    params: ClientParams,
 ) -> Result<Vec<ClientReply>, Error> {
     let lock = ftl_memory.lock()?;
     let strings = ftl_memory.strings(&lock)?;
@@ -55,7 +55,7 @@ fn get_clients(
         filter_ftl_clients(ftl_memory, &lock, &clients, env, params)?
             .iter()
             .map(|client| client.as_reply(&strings))
-            .collect::<Vec<ClientReply>>()
+            .collect::<Vec<ClientReply>>(),
     )
 }
 
@@ -66,7 +66,7 @@ pub fn filter_ftl_clients<'a>(
     lock: &ShmLockGuard<'a>,
     clients: &'a [FtlClient],
     env: &Env,
-    params: ClientParams
+    params: ClientParams,
 ) -> Result<Vec<&'a FtlClient>, Error> {
     // Check if client details are private
     if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
@@ -101,7 +101,7 @@ mod test {
     use crate::{
         env::PiholeFile,
         ftl::{FtlClient, FtlCounters, FtlMemory, FtlSettings},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use std::collections::HashMap;
 
@@ -135,7 +135,7 @@ mod test {
                 total_clients: 6,
                 ..FtlCounters::default()
             },
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 
@@ -193,7 +193,7 @@ mod test {
             .ftl_memory(test_data())
             .file(
                 PiholeFile::SetupVars,
-                "API_EXCLUDE_CLIENTS=client3,10.1.1.2"
+                "API_EXCLUDE_CLIENTS=client3,10.1.1.2",
             )
             .file(PiholeFile::FtlConfig, "")
             .expect_json(json!([

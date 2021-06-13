@@ -15,11 +15,11 @@ use crate::{
         auth::User,
         stats::{
             database::summary_db::{get_blocked_query_count, get_query_status_count},
-            upstreams::{UpstreamItemReply, UpstreamsReply}
-        }
+            upstreams::{UpstreamItemReply, UpstreamsReply},
+        },
     },
     services::PiholeModule,
-    util::{reply_result, Error, ErrorKind, Reply}
+    util::{reply_result, Error, ErrorKind, Reply},
 };
 use diesel::{dsl::sql, prelude::*, sql_types::BigInt, sqlite::SqliteConnection};
 use failure::ResultExt;
@@ -34,7 +34,7 @@ pub fn upstreams_db(
     from: u64,
     until: u64,
     _auth: User,
-    db: InjectProvided<PiholeModule, FtlDatabase>
+    db: InjectProvided<PiholeModule, FtlDatabase>,
 ) -> Reply {
     reply_result(upstreams_db_impl(from, until, &db as &SqliteConnection))
 }
@@ -43,7 +43,7 @@ pub fn upstreams_db(
 fn upstreams_db_impl(
     from: u64,
     until: u64,
-    db: &SqliteConnection
+    db: &SqliteConnection,
 ) -> Result<UpstreamsReply, Error> {
     let upstream_counts = get_upstream_counts(from, until, db)?;
     let blocked_count = get_blocked_query_count(db, from, until)?;
@@ -64,12 +64,12 @@ fn upstreams_db_impl(
     upstreams.push(UpstreamItemReply {
         name: "blocklist".to_owned(),
         ip: "blocklist".to_owned(),
-        count: blocked_count
+        count: blocked_count,
     });
     upstreams.push(UpstreamItemReply {
         name: "cache".to_owned(),
         ip: "cache".to_owned(),
-        count: cached_count
+        count: cached_count,
     });
 
     // Convert the upstreams into the reply structs
@@ -81,7 +81,7 @@ fn upstreams_db_impl(
             ip.map(|ip| UpstreamItemReply {
                 name: "".to_owned(),
                 ip,
-                count: count as usize
+                count: count as usize,
             })
         })
         .collect();
@@ -95,7 +95,7 @@ fn upstreams_db_impl(
     Ok(UpstreamsReply {
         upstreams,
         forwarded_queries,
-        total_queries
+        total_queries,
     })
 }
 
@@ -105,7 +105,7 @@ fn upstreams_db_impl(
 fn get_upstream_counts(
     from: u64,
     until: u64,
-    db: &SqliteConnection
+    db: &SqliteConnection,
 ) -> Result<HashMap<Option<String>, i64>, Error> {
     use crate::databases::ftl::queries::dsl::*;
 
@@ -130,7 +130,7 @@ mod test {
     use super::{get_upstream_counts, upstreams_db_impl};
     use crate::{
         databases::ftl::connect_to_ftl_test_db,
-        routes::stats::upstreams::{UpstreamItemReply, UpstreamsReply}
+        routes::stats::upstreams::{UpstreamItemReply, UpstreamsReply},
     };
     use std::collections::HashMap;
 
@@ -145,26 +145,26 @@ mod test {
                 UpstreamItemReply {
                     name: "blocklist".to_owned(),
                     ip: "blocklist".to_owned(),
-                    count: 0
+                    count: 0,
                 },
                 UpstreamItemReply {
                     name: "cache".to_owned(),
                     ip: "cache".to_owned(),
-                    count: 28
+                    count: 28,
                 },
                 UpstreamItemReply {
                     name: "".to_owned(),
                     ip: "8.8.4.4".to_owned(),
-                    count: 22
+                    count: 22,
                 },
                 UpstreamItemReply {
                     name: "".to_owned(),
                     ip: "8.8.8.8".to_owned(),
-                    count: 4
+                    count: 4,
                 },
             ],
             total_queries: 94,
-            forwarded_queries: 26
+            forwarded_queries: 26,
         };
 
         let db = connect_to_ftl_test_db();

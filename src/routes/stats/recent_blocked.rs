@@ -14,7 +14,7 @@ use crate::{
     routes::auth::User,
     services::PiholeModule,
     settings::{ConfigEntry, FtlConfEntry, FtlPrivacyLevel},
-    util::{reply_data, Reply}
+    util::{reply_data, Reply},
 };
 use rocket::State;
 use shaku_rocket::Inject;
@@ -27,7 +27,7 @@ pub fn recent_blocked(
     _auth: User,
     ftl_memory: &State<FtlMemory>,
     env: Inject<PiholeModule, Env>,
-    params: RecentBlockedParams
+    params: RecentBlockedParams,
 ) -> Reply {
     get_recent_blocked(ftl_memory, &env, params.num.unwrap_or(1))
 }
@@ -35,7 +35,7 @@ pub fn recent_blocked(
 /// Represents the possible GET parameters on `/stats/recent_blocked`
 #[derive(FromForm)]
 pub struct RecentBlockedParams {
-    num: Option<usize>
+    num: Option<usize>,
 }
 
 /// Get `num`-many most recently blocked domains
@@ -75,10 +75,10 @@ mod test {
         env::PiholeFile,
         ftl::{
             FtlCounters, FtlDnssecType, FtlDomain, FtlMemory, FtlQuery, FtlQueryReplyType,
-            FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, MAGIC_BYTE
+            FtlQueryStatus, FtlQueryType, FtlRegexMatch, FtlSettings, MAGIC_BYTE,
         },
         settings::FtlPrivacyLevel,
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use std::collections::HashMap;
 
@@ -100,7 +100,7 @@ mod test {
                 reply_type: FtlQueryReplyType::IP,
                 dnssec_type: FtlDnssecType::Unspecified,
                 is_complete: true,
-                privacy_level: FtlPrivacyLevel::ShowAll
+                privacy_level: FtlPrivacyLevel::ShowAll,
             }
         };
     }
@@ -154,7 +154,7 @@ mod test {
                 total_domains: 5,
                 ..FtlCounters::default()
             },
-            settings: FtlSettings::default()
+            settings: FtlSettings::default(),
         }
     }
 

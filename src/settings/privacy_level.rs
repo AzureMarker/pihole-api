@@ -20,7 +20,7 @@ pub enum FtlPrivacyLevel {
     HideDomains,
     HideDomainsAndClients,
     Maximum,
-    NoStats
+    NoStats,
 }
 
 impl FromStr for FtlPrivacyLevel {
@@ -33,7 +33,7 @@ impl FromStr for FtlPrivacyLevel {
             "2" => Ok(FtlPrivacyLevel::HideDomainsAndClients),
             "3" => Ok(FtlPrivacyLevel::Maximum),
             "4" => Ok(FtlPrivacyLevel::NoStats),
-            _ => Err(Error::from(ErrorKind::InvalidSettingValue))
+            _ => Err(Error::from(ErrorKind::InvalidSettingValue)),
         }
     }
 }

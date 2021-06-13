@@ -31,7 +31,7 @@ fn get_file(filename: &str, env: &Env) -> Option<FileResponse> {
     let content_type = if has_extension {
         match ContentType::from_extension(filename.rsplit('.').next().unwrap()) {
             Some(value) => value,
-            None => ContentType::Binary
+            None => ContentType::Binary,
         }
     } else {
         ContentType::Binary

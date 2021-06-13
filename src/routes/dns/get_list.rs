@@ -11,9 +11,9 @@
 use crate::{
     services::{
         lists::{List, ListService},
-        PiholeModule
+        PiholeModule,
     },
-    util::{reply_result, Reply}
+    util::{reply_result, Reply},
 };
 use shaku_rocket::InjectProvided;
 
@@ -39,7 +39,7 @@ pub fn get_regexlist(service: InjectProvided<PiholeModule, dyn ListService>) -> 
 mod test {
     use crate::{
         services::lists::{List, ListService, MockListService},
-        testing::TestBuilder
+        testing::TestBuilder,
     };
     use mockall::predicate::*;
 
@@ -66,7 +66,7 @@ mod test {
         get_test(
             List::White,
             "/admin/api/dns/whitelist",
-            vec!["example.com".to_owned(), "example.net".to_owned()]
+            vec!["example.com".to_owned(), "example.net".to_owned()],
         );
     }
 
@@ -75,7 +75,7 @@ mod test {
         get_test(
             List::Black,
             "/admin/api/dns/blacklist",
-            vec!["example.com".to_owned(), "example.net".to_owned()]
+            vec!["example.com".to_owned(), "example.net".to_owned()],
         );
     }
 
@@ -84,7 +84,7 @@ mod test {
         get_test(
             List::Regex,
             "/admin/api/dns/regexlist",
-            vec!["^.*example.com$".to_owned(), "example.net".to_owned()]
+            vec!["^.*example.com$".to_owned(), "example.net".to_owned()],
         );
     }
 }

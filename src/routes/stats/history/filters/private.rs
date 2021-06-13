@@ -12,7 +12,7 @@ use crate::{ftl::FtlQuery, settings::FtlPrivacyLevel};
 
 /// Filter out private queries
 pub fn filter_private_queries<'a>(
-    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>
+    queries_iter: Box<dyn Iterator<Item = &'a FtlQuery> + 'a>,
 ) -> Box<dyn Iterator<Item = &'a FtlQuery> + 'a> {
     Box::new(queries_iter.filter(|query| query.privacy_level < FtlPrivacyLevel::Maximum))
 }
