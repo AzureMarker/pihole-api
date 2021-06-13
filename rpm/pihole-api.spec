@@ -55,5 +55,5 @@ setcap CAP_NET_BIND_SERVICE+eip /usr/bin/pihole-API
 
 
 %changelog
-* Fri Mar 22 2019 Mark Drobnak <mark.drobnak@pi-hole.net> - 0.1.0-1
+* Fri Mar 22 2019 Mark Drobnak <mark.drobnak@gmail.com> - 0.1.0-1
 - Initial package

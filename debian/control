@@ -1,6 +1,6 @@
 Source: pihole-api
 Priority: optional
-Maintainer: The Pi-hole Team <adblock@pi-hole.net>
+Maintainer: Mark Drobnak <mark.drobnak@gmail.com>
 Build-Depends: debhelper (>= 10), dh-systemd (>= 1.5)
 
 Package: pihole-api

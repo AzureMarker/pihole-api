@@ -2,7 +2,7 @@ version: 2
 
 .job_template: &job_template
   docker:
-    - image: pihole/api-build:v3-$CIRCLE_JOB
+    - image: pihole/api-build:v4-$CIRCLE_JOB
   steps:
     - checkout
     - restore_cache:
@@ -52,26 +52,15 @@ version: 2
     - run:
         name: "Test"
         command: |
-          if [[ "$CIRCLE_JOB" != "x86_64-musl" ]]; then
-            exit 0
-          fi
-
-          # These flags are used so the test results can be used for code coverage
-          export CARGO_INCREMENTAL=0
-          export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Zno-landing-pads"
-
-          # Delete previous code coverage info
-          find target -name *.gcda -type f -delete
-
-          time cargo test
+          [[ "$CIRCLE_JOB" != "x86_64-musl" ]] || cargo test
     - run:
-        name: "Upload Code Coverage"
+        name: "Generate and Upload Code Coverage"
         command: |
           if [[ "$CIRCLE_JOB" != "x86_64-musl" ]]; then
             exit 0
           fi
 
-          grcov target -t lcov --branch --ignore-not-existing --ignore-dir "/*" --ignore-dir "*build.rs" -o lcov.info
+          cargo tarpaulin --ciserver circle-ci --out Xml
           bash <(curl -s https://codecov.io/bash) -f lcov.info
     - run:
         name: "Build DEB"
