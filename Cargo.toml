@@ -36,8 +36,8 @@ nix = "0.14"
 base64 = "0.10"
 task_scheduler = "0.2.0"
 structopt = "0.2.18"
-shaku = { path = "../shaku/shaku" }
-shaku_rocket = { path = "../shaku/shaku_rocket" }
+shaku = "0.6"
+shaku_rocket = "0.7.0-rc.1"
 
 # Statically link SQLite (use the crate version provided by Diesel)
 # The highest version which Diesel currently allows is 0.12.0

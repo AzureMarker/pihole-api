@@ -1812,6 +1812,8 @@ dependencies = [
 [[package]]
 name = "shaku"
 version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "334da76925a094e2c72802ce17433cba4b5d8661d66ef36e1f899efab17192a5"
 dependencies = [
  "anymap",
  "once_cell",
@@ -1821,6 +1823,8 @@ dependencies = [
 [[package]]
 name = "shaku_derive"
 version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "524f791f1f958b9c1825c1e48657d3bc485ee9ac4a1c7c226ab7fc7010afa7dc"
 dependencies = [
  "proc-macro2 1.0.27",
  "quote 1.0.7",
@@ -1829,7 +1833,9 @@ dependencies = [
 
 [[package]]
 name = "shaku_rocket"
-version = "0.6.0"
+version = "0.7.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c44c50fed96b539de3ef3d4d6f2b4f66be198e5a503d8767f8a33fc92c7c9d18"
 dependencies = [
  "rocket",
  "shaku",
