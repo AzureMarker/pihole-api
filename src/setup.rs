@@ -63,7 +63,7 @@ pub async fn start(config_location: &Path) -> Result<(), Error> {
         .with_component_parameters::<Env>(env.clone())
         .build();
 
-    setup(
+    let _ = setup(
         rocket::custom(rocket::Config {
             address: env.config().general.address.parse().unwrap(),
             port: env.config().general.port as u16,

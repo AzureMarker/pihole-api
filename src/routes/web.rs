@@ -40,7 +40,7 @@ fn get_file(filename: &str, env: &Env) -> Option<FileResponse> {
     // Get the file from the assets
     match WebAssets::get(filename) {
         // The file was found, so build the response
-        Some(data) => Some((content_type, data)),
+        Some(embedded_file) => Some((content_type, embedded_file.data)),
         // If the file was not found, and there is no extension on the filename,
         // fall back to the web interface index.html
         None => {
@@ -73,8 +73,8 @@ fn get_index_response(env: &Env) -> Option<FileResponse> {
 /// such as `static/js/main.9e23e19a.chunk.js`)
 fn get_index_html(env: &Env) -> Option<Cow<'static, [u8]>> {
     // Get index.html as a string
-    let index_bytes = WebAssets::get("index.html")?;
-    let mut index_string = String::from_utf8(index_bytes.into_owned()).ok()?;
+    let index_html: rust_embed::EmbeddedFile = WebAssets::get("index.html")?;
+    let mut index_string = String::from_utf8(index_html.data.into_owned()).ok()?;
 
     // Find the location and length of the head element
     let head_index = index_string.find("<head>")?;

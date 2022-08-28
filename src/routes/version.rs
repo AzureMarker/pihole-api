@@ -65,8 +65,9 @@ fn read_ftl_version(ftl: &FtlConnectionType) -> Result<Version, Error> {
 
 /// Read Web version information from the `VERSION` file in the web assets.
 fn read_web_version() -> Result<Version, Error> {
-    let version_raw = WebAssets::get("VERSION").ok_or(ErrorKind::Unknown)?;
-    let version_str = str::from_utf8(&version_raw).context(ErrorKind::Unknown)?;
+    let version_raw: rust_embed::EmbeddedFile =
+        WebAssets::get("VERSION").ok_or(ErrorKind::Unknown)?;
+    let version_str = str::from_utf8(&version_raw.data).context(ErrorKind::Unknown)?;
 
     parse_web_version(version_str)
 }
