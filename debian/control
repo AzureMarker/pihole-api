@@ -1,7 +1,7 @@
 Source: pihole-api
 Priority: optional
 Maintainer: Mark Drobnak <mark.drobnak@gmail.com>
-Build-Depends: debhelper (>= 10), dh-systemd (>= 1.5)
+Build-Depends: debhelper (>= 10)
 
 Package: pihole-api
 Architecture: any
