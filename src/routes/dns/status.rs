@@ -51,7 +51,7 @@ pub fn change_status(
 /// Enable blocking
 fn enable(env: &Env) -> Result<(), Error> {
     // Can't enable blocking when it's already enabled
-    if SetupVarsEntry::BlockingEnabled.is_true(&env)? {
+    if SetupVarsEntry::BlockingEnabled.is_true(env)? {
         return Err(Error::from(ErrorKind::BadRequest));
     }
 
@@ -74,7 +74,7 @@ fn enable(env: &Env) -> Result<(), Error> {
 /// Otherwise, re-enable after the specified number of seconds.
 fn disable(env: &Env, time: Option<usize>, scheduler: Option<&Scheduler>) -> Result<(), Error> {
     // Can't disable blocking when it's already disabled
-    if !SetupVarsEntry::BlockingEnabled.is_true(&env)? {
+    if !SetupVarsEntry::BlockingEnabled.is_true(env)? {
         return Err(Error::from(ErrorKind::BadRequest));
     }
 

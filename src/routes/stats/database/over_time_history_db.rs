@@ -115,7 +115,7 @@ fn get_total_intervals(
 
     // Execute SQL query
     Ok(sql_query
-        .load(&db as &SqliteConnection)
+        .load(db as &SqliteConnection)
         .context(ErrorKind::FtlDatabase)?
         // Convert to HashMap
         .into_iter()
@@ -147,7 +147,7 @@ fn get_blocked_intervals(
 
     // Execute SQL query
     Ok(sql_query
-        .load(&db as &SqliteConnection)
+        .load(db as &SqliteConnection)
         .context(ErrorKind::FtlDatabase)?
         // Convert to HashMap
         .into_iter()

@@ -87,7 +87,7 @@ pub enum CounterTableEntry {
     BlockedQueries,
 }
 
-#[cfg_attr(test, derive(PartialEq, Debug))]
+#[cfg_attr(test, derive(PartialEq, Eq, Debug))]
 #[derive(Queryable)]
 pub struct FtlDbQuery {
     pub id: i32,

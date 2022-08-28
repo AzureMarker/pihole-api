@@ -34,7 +34,7 @@ fn open_shm_lock() -> Result<Map<FtlLock>, Error> {
 }
 
 /// The type of action that the lock thread is requested to perform.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RequestType {
     Lock,
     Unlock,
@@ -273,7 +273,7 @@ mod test {
         assert_eq!(lock_thread.lock_count, 1);
 
         // The FTL wait signal was turned off
-        assert_eq!(ftl_lock.ftl_waiting_for_lock, false);
+        assert!(!ftl_lock.ftl_waiting_for_lock);
 
         // The mutex was locked
         assert_eq!(unsafe { pthread_mutex_trylock(&mut ftl_lock.lock) }, EBUSY);
@@ -401,7 +401,7 @@ mod test {
         assert_eq!(lock_thread.lock_count, 0);
 
         // The FTL wait signal was removed (either by FTL or API)
-        assert_eq!(ftl_lock.ftl_waiting_for_lock, false);
+        assert!(!ftl_lock.ftl_waiting_for_lock);
 
         // The mutex was unlocked
         assert_eq!(unsafe { pthread_mutex_trylock(&mut ftl_lock.lock) }, 0);

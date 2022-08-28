@@ -105,7 +105,7 @@ fn get_summary_impl(
         // TODO: use real client values when we can accurately determine the number of clients
         total_clients: 0,
         active_clients: 0,
-        status: if SetupVarsEntry::BlockingEnabled.is_true(&env)? {
+        status: if SetupVarsEntry::BlockingEnabled.is_true(env)? {
             "enabled"
         } else {
             "disabled"

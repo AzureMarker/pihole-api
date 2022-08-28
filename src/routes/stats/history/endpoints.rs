@@ -40,14 +40,14 @@ pub fn history(
 }
 
 /// The structure returned by the history endpoint
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Eq, Debug)]
 pub struct HistoryReply {
     pub history: Vec<QueryReply>,
     pub cursor: Option<String>,
 }
 
 /// The structure of queries returned by the history endpoint
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Eq, Debug)]
 pub struct QueryReply {
     pub timestamp: u64,
     pub r#type: u8,
@@ -96,7 +96,7 @@ impl Default for HistoryParams {
 }
 
 /// The cursor object used for history pagination
-#[cfg_attr(test, derive(PartialEq, Debug))]
+#[cfg_attr(test, derive(PartialEq, Eq, Debug))]
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct HistoryCursor {
     pub id: Option<i32>,

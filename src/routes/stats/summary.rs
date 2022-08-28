@@ -113,7 +113,7 @@ pub struct Summary {
 /// Part of the summary response
 #[allow(non_snake_case)]
 #[derive(Serialize)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
+#[cfg_attr(test, derive(PartialEq, Eq, Debug))]
 pub struct TotalQueries {
     pub A: usize,
     pub AAAA: usize,
@@ -127,7 +127,7 @@ pub struct TotalQueries {
 /// Part of the summary response
 #[allow(non_snake_case)]
 #[derive(Serialize)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
+#[cfg_attr(test, derive(PartialEq, Eq, Debug))]
 pub struct ReplyTypes {
     pub IP: usize,
     pub CNAME: usize,

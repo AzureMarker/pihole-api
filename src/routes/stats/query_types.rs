@@ -39,7 +39,7 @@ fn query_types_impl(ftl_memory: &FtlMemory) -> Result<Vec<QueryTypeReply>, Error
 
 /// Represents the reply structure for returning query type data
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct QueryTypeReply {
     pub name: String,
     pub count: usize,

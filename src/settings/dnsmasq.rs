@@ -84,7 +84,7 @@ fn write_servers(config_file: &mut BufWriter<File>, env: &Env) -> Result<(), Err
             }
             None => {
                 // This is an IPv4 address
-                dns.replace(":", "#")
+                dns.replace(':', "#")
             }
         };
 

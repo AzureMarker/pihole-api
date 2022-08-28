@@ -14,7 +14,7 @@ use std::str::FromStr;
 /// The privacy levels used by FTL
 #[repr(u8)]
 #[cfg_attr(test, derive(Debug))]
-#[derive(PartialOrd, PartialEq, Copy, Clone)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Copy, Clone)]
 pub enum FtlPrivacyLevel {
     ShowAll,
     HideDomains,

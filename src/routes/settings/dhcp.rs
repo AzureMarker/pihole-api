@@ -109,7 +109,7 @@ mod test {
             rapid_commit: false,
         };
 
-        assert_eq!(settings.is_valid(), false);
+        assert!(!settings.is_valid());
     }
 
     /// Verify that having inactive DHCP and missing settings is valid
@@ -126,7 +126,7 @@ mod test {
             rapid_commit: false,
         };
 
-        assert_eq!(settings.is_valid(), true);
+        assert!(settings.is_valid());
     }
 
     /// Verify that having active DHCP and no missing settings is valid
@@ -143,7 +143,7 @@ mod test {
             rapid_commit: false,
         };
 
-        assert_eq!(settings.is_valid(), true);
+        assert!(settings.is_valid());
     }
 
     /// Verify that having invalid settings is invalid
@@ -160,7 +160,7 @@ mod test {
             rapid_commit: false,
         };
 
-        assert_eq!(settings.is_valid(), false);
+        assert!(!settings.is_valid());
     }
 
     /// Basic test for stored settings

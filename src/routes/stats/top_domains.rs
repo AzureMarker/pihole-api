@@ -48,7 +48,7 @@ pub struct TopDomainParams {
 
 /// Represents the reply structure for top (blocked) domains
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct TopDomainsReply {
     pub top_domains: Vec<TopDomainItemReply>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,7 +59,7 @@ pub struct TopDomainsReply {
 
 /// Represents the reply structure for a top (blocked) domain item
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct TopDomainItemReply {
     pub domain: String,
     pub count: usize,
@@ -219,21 +219,20 @@ pub fn check_privacy_level_top_domains(
     blocked: bool,
     count: usize,
 ) -> Result<Option<TopDomainsReply>, Error> {
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::HideDomains
-    {
-        if blocked {
-            return Ok(Some(TopDomainsReply {
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(env)? >= FtlPrivacyLevel::HideDomains {
+        return if blocked {
+            Ok(Some(TopDomainsReply {
                 top_domains: Vec::new(),
                 total_queries: None,
                 blocked_queries: Some(count),
-            }));
+            }))
         } else {
-            return Ok(Some(TopDomainsReply {
+            Ok(Some(TopDomainsReply {
                 top_domains: Vec::new(),
                 total_queries: Some(count),
                 blocked_queries: None,
-            }));
-        }
+            }))
+        };
     }
 
     Ok(None)

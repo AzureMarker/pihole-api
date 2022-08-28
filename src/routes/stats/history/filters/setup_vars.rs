@@ -68,12 +68,9 @@ mod test {
             .file(PiholeFile::SetupVars, "API_QUERY_LOG_SHOW=nothing")
             .build();
         let queries = test_queries();
-        let filtered_queries: Vec<&FtlQuery> =
-            filter_setup_vars_setting(Box::new(queries.iter()), &env)
-                .unwrap()
-                .collect();
+        let filtered_queries = filter_setup_vars_setting(Box::new(queries.iter()), &env).unwrap();
 
-        assert_eq!(filtered_queries.len(), 0);
+        assert_eq!(filtered_queries.count(), 0);
     }
 
     /// Only permitted queries should be shown if `API_QUERY_LOG_SHOW` equals

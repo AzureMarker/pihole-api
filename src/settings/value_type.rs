@@ -139,7 +139,7 @@ impl ValueType {
 
                 // Check if port is specified
                 let (ip, port) = value.split_at(value.rfind(':').unwrap());
-                if let Ok(port) = port.replace(":", "").parse::<usize>() {
+                if let Ok(port) = port.replace(':', "").parse::<usize>() {
                     is_ipv4_valid(ip) && port <= 65535
                 } else {
                     false
@@ -153,7 +153,7 @@ impl ValueType {
                 }
 
                 let (ip, mask) = value.split_at(value.rfind('/').unwrap());
-                ValueType::Integer.is_valid(&mask.replace("/", "")) && is_ipv4_valid(ip)
+                ValueType::Integer.is_valid(&mask.replace('/', "")) && is_ipv4_valid(ip)
             }
             ValueType::IPv4CIDR => ValueType::String(&["8", "16", "24", "32"]).is_valid(value),
             ValueType::IPv6 => is_ipv6_valid(value),
@@ -305,11 +305,7 @@ mod tests {
         for (setting, value) in tests {
             let result = setting.is_valid(value);
 
-            assert_eq!(
-                result, true,
-                "{:?}.is_valid({:?}) == {}",
-                setting, value, result
-            );
+            assert!(result, "{:?}.is_valid({:?}) == {}", setting, value, result);
         }
     }
 
@@ -368,11 +364,7 @@ mod tests {
         for (setting, value) in tests {
             let result = setting.is_valid(value);
 
-            assert_eq!(
-                result, false,
-                "{:?}.is_valid({:?}) == {}",
-                setting, value, result
-            );
+            assert!(!result, "{:?}.is_valid({:?}) == {}", setting, value, result);
         }
     }
 

@@ -69,14 +69,14 @@ pub fn filter_ftl_clients<'a>(
     params: ClientParams,
 ) -> Result<Vec<&'a FtlClient>, Error> {
     // Check if client details are private
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(env)?
         >= FtlPrivacyLevel::HideDomainsAndClients
     {
         return Ok(Vec::new());
     }
 
-    let strings = ftl_memory.strings(&lock)?;
-    let counters = ftl_memory.counters(&lock)?;
+    let strings = ftl_memory.strings(lock)?;
+    let counters = ftl_memory.counters(lock)?;
 
     // Get an array of valid client references (FTL allocates more than it uses)
     let mut clients = clients
@@ -86,7 +86,7 @@ pub fn filter_ftl_clients<'a>(
 
     // Ignore hidden and excluded clients
     remove_hidden_clients(&mut clients, &strings);
-    remove_excluded_clients(&mut clients, &env, &strings)?;
+    remove_excluded_clients(&mut clients, env, &strings)?;
 
     // Ignore inactive clients by default (retain active clients)
     if !params.inactive.unwrap_or(false) {

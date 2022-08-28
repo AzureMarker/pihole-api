@@ -85,7 +85,7 @@ mod tests {
         let db = connect_to_gravity_test_db();
         let repo = DomainAuditRepositoryImpl { db };
 
-        assert_eq!(repo.contains("audited.domain").unwrap(), true);
+        assert!(repo.contains("audited.domain").unwrap());
     }
 
     /// If the audit table does not contain the domain, false will be returned
@@ -94,7 +94,7 @@ mod tests {
         let db = connect_to_gravity_test_db();
         let repo = DomainAuditRepositoryImpl { db };
 
-        assert_eq!(repo.contains("not.audited.domain").unwrap(), false);
+        assert!(!repo.contains("not.audited.domain").unwrap());
     }
 
     /// All audited domains are retrieved
@@ -114,6 +114,6 @@ mod tests {
 
         repo.add("new.audited.domain").unwrap();
 
-        assert_eq!(repo.contains("new.audited.domain").unwrap(), true);
+        assert!(repo.contains("new.audited.domain").unwrap());
     }
 }

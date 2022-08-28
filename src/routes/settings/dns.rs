@@ -89,7 +89,7 @@ fn get_upstream_dns(env: &Env) -> Result<Vec<String>, Error> {
     let mut upstream_dns = Vec::new();
 
     for num in 1.. {
-        let ip = SetupVarsEntry::PiholeDns(num).read(&env)?;
+        let ip = SetupVarsEntry::PiholeDns(num).read(env)?;
 
         if !ip.is_empty() {
             upstream_dns.push(ip);

@@ -181,7 +181,7 @@ impl FtlMemory {
                 FtlStrings::Production(Array::new(Object::open(FTL_SHM_STRINGS)?)?, PhantomData)
             }
             #[cfg(test)]
-            FtlMemory::Test { strings, .. } => FtlStrings::Test(&strings),
+            FtlMemory::Test { strings, .. } => FtlStrings::Test(strings),
         })
     }
 

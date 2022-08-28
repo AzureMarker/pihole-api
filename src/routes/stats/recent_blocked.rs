@@ -41,7 +41,7 @@ pub struct RecentBlockedParams {
 /// Get `num`-many most recently blocked domains
 pub fn get_recent_blocked(ftl_memory: &FtlMemory, env: &Env, num: usize) -> Reply {
     // Check if client details are private
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)? >= FtlPrivacyLevel::HideDomains
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(env)? >= FtlPrivacyLevel::HideDomains
     {
         return reply_data([0; 0]);
     }

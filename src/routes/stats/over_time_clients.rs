@@ -123,7 +123,7 @@ impl Ord for OverTimeClientItem {
 
 /// Represents the reply format for the overTime clients endpoint
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct OverTimeClients {
     pub over_time: Vec<OverTimeClientItem>,
     pub clients: Vec<ClientReply>,

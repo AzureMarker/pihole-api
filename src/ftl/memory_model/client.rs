@@ -20,7 +20,7 @@ use std::fmt::{
 
 /// Represents an FTL client in API responses
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct ClientReply {
     pub name: String,
     pub ip: String,
@@ -100,8 +100,8 @@ impl FtlClient {
 
     /// Convert this FTL client into the reply format
     pub fn as_reply(&self, strings: &FtlStrings) -> ClientReply {
-        let name = self.get_name(&strings).unwrap_or_default();
-        let ip = self.get_ip(&strings);
+        let name = self.get_name(strings).unwrap_or_default();
+        let ip = self.get_ip(strings);
 
         ClientReply {
             name: name.to_owned(),

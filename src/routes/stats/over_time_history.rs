@@ -43,7 +43,7 @@ pub fn over_time_history(ftl_memory: &State<FtlMemory>) -> Reply {
 }
 
 #[derive(Serialize)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
+#[cfg_attr(test, derive(PartialEq, Eq, Debug))]
 pub struct OverTimeItem {
     pub timestamp: u64,
     pub total_queries: usize,

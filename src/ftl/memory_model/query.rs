@@ -26,7 +26,7 @@ pub const BLOCKED_STATUSES: [i32; 6] = [
 
 /// The query struct stored in shared memory
 #[repr(C)]
-#[cfg_attr(test, derive(PartialEq, Debug))]
+#[cfg_attr(test, derive(PartialEq, Eq, Debug))]
 #[derive(Copy, Clone)]
 pub struct FtlQuery {
     pub magic: libc::c_uchar,
@@ -58,7 +58,7 @@ impl FtlQuery {
 /// The statuses an FTL query can have
 #[repr(u8)]
 #[cfg_attr(test, derive(Debug))]
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum FtlQueryStatus {
     Unknown,
     Gravity,
@@ -104,7 +104,7 @@ impl<'v> FromFormField<'v> for FtlQueryStatus {
 #[allow(clippy::upper_case_acronyms)]
 #[repr(u8)]
 #[cfg_attr(test, derive(Debug))]
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum FtlQueryReplyType {
     Unknown,
     NODATA,
@@ -153,7 +153,7 @@ impl<'v> FromFormField<'v> for FtlQueryReplyType {
 /// The DNSSEC reply types an FTL query can have
 #[repr(u8)]
 #[cfg_attr(test, derive(Debug))]
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum FtlDnssecType {
     Unspecified,
     Secure,

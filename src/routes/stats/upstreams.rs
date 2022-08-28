@@ -71,7 +71,7 @@ pub fn upstreams(_auth: User, ftl_memory: &State<FtlMemory>) -> Reply {
 
 /// Represents the reply structure for returning upstream item data
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct UpstreamItemReply {
     pub name: String,
     pub ip: String,
@@ -80,7 +80,7 @@ pub struct UpstreamItemReply {
 
 /// Represents the reply structure for upstreams endpoints
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct UpstreamsReply {
     pub upstreams: Vec<UpstreamItemReply>,
     pub forwarded_queries: usize,

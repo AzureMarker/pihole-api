@@ -46,7 +46,7 @@ pub struct TopClientParams {
 
 /// Represents the reply structure for top (blocked) clients
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct TopClientsReply {
     pub top_clients: Vec<TopClientItemReply>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,7 +57,7 @@ pub struct TopClientsReply {
 
 /// Represents the reply structure for a top (blocked) client item
 #[derive(Serialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct TopClientItemReply {
     pub name: String,
     pub ip: String,
@@ -166,7 +166,7 @@ pub fn check_privacy_level_top_clients(
     blocked: bool,
     count: usize,
 ) -> Result<Option<TopClientsReply>, Error> {
-    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(&env)?
+    if FtlConfEntry::PrivacyLevel.read_as::<FtlPrivacyLevel>(env)?
         >= FtlPrivacyLevel::HideDomainsAndClients
     {
         return if blocked {

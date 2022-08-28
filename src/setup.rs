@@ -96,7 +96,7 @@ pub fn test(
             ..rocket::Config::debug_default()
         }),
         ftl_memory,
-        &config,
+        config,
         api_key,
         module,
     )
